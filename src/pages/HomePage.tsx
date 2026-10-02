@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react'
+import { AppIcon } from '../components/AppIcon'
+import { VisitCard } from '../components/VisitCard'
+import { getRecentVisits } from '../db/database'
+import type { VisitSummary } from '../types/visit'
+
+type HomePageProps = {
+  onCreateVisit: () => void
+  onOpenHistory: () => void
+  onOpenVisit: (id: string) => void
+}
+
+export function HomePage({
+  onCreateVisit,
+  onOpenHistory,
+  onOpenVisit,
+}: HomePageProps) {
+  const [recentVisits, setRecentVisits] = useState<VisitSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const today = new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date())
+
+  useEffect(() => {
+    let isMounted = true
+
+    getRecentVisits()
+      .then((visits) => {
+        if (isMounted) setRecentVisits(visits)
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  return (
+    <>
+      <header className="topbar">
+        <div className="brand-mark" aria-hidden="true">
+          <span />
+        </div>
+        <div className="brand-copy">
+          <p>Field Log</p>
+          <span>{today}</span>
+        </div>
+      </header>
+
+      <main className="page-content home-page">
+        <section className="welcome-panel">
+          <p className="panel-label">Siap ke lapangan?</p>
+          <h1>Catat kunjungan dalam satu tempat.</h1>
+          <p className="panel-copy">
+            Lokasi, kegiatan, catatan, dan foto tetap tersusun bersama.
+          </p>
+          <button className="primary-action" type="button" onClick={onCreateVisit}>
+            <span className="action-icon">
+              <AppIcon name="plus" size={26} />
+            </span>
+            <span>Kunjungan Baru</span>
+            <AppIcon name="arrow" size={22} />
+          </button>
+        </section>
+
+        <section className="recent-section" aria-labelledby="recent-title">
+          <div className="section-heading">
+            <div>
+              <p className="section-kicker">Aktivitas</p>
+              <h2 id="recent-title">Kunjungan terakhir</h2>
+            </div>
+            <button className="text-button" type="button" onClick={onOpenHistory}>
+              Lihat semua
+            </button>
+          </div>
+
+          {isLoading && <div className="recent-loading">Memuat kunjungan…</div>}
+
+          {!isLoading && recentVisits.length === 0 && (
+            <div className="empty-card">
+              <div className="empty-icon">
+                <AppIcon name="clipboard" size={27} />
+              </div>
+              <h3>Belum ada kunjungan</h3>
+              <p>Kunjungan yang kamu simpan akan muncul di bagian ini.</p>
+            </div>
+          )}
+
+          {!isLoading && recentVisits.length > 0 && (
+            <div className="recent-list">
+              {recentVisits.map((visit) => (
+                <VisitCard key={visit.id} visit={visit} onOpen={onOpenVisit} />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </>
+  )
+}
