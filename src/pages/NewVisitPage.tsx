@@ -7,11 +7,14 @@ import {
   type FormEvent,
 } from 'react'
 import { AppIcon } from '../components/AppIcon'
+import { SearchableSelect } from '../components/SearchableSelect'
 import {
   activityCategories,
   locationTypes,
   roadDirections,
   tollRoads,
+  tollGates,
+  getRoadLabel,
 } from '../data/visitOptions'
 import type {
   ActivityCategory,
@@ -53,6 +56,13 @@ function formatVisitTime(date: Date) {
   }
 }
 
+function getLastRoad() {
+  try {
+    const id = localStorage.getItem('field-log-last-road')
+    return tollRoads.some((road) => road.id === id) ? id! : ''
+  } catch { return '' }
+}
+
 export function NewVisitPage({
   onBack,
   onSave,
@@ -68,7 +78,7 @@ export function NewVisitPage({
   const [locationType, setLocationType] =
     useState<LocationType>(initialVisit?.primaryLocation.type ?? 'toll_gate')
   const [tollRoadId, setTollRoadId] = useState(
-    initialVisit?.primaryLocation.tollRoadId ?? '',
+    initialVisit?.primaryLocation.tollRoadId ?? (mode === 'create' ? getLastRoad() : ''),
   )
   const [customTollRoad, setCustomTollRoad] = useState(
     initialVisit?.primaryLocation.tollRoadId === 'other'
@@ -81,6 +91,12 @@ export function NewVisitPage({
   const [locationDetail, setLocationDetail] = useState(
     initialVisit?.primaryLocation.detail ?? '',
   )
+  const [gateChoice, setGateChoice] = useState(() => {
+    const name = initialVisit?.primaryLocation.name ?? ''
+    return name && initialVisit?.primaryLocation.type === 'toll_gate'
+      ? (tollGates[initialVisit.primaryLocation.tollRoadId ?? '']?.includes(name) ? name : '__other__')
+      : ''
+  })
   const [direction, setDirection] = useState(
     initialVisit?.primaryLocation.direction ?? '',
   )
@@ -197,6 +213,7 @@ export function NewVisitPage({
     setLocationDetail('')
     setDirection('')
     setStation('')
+    setGateChoice('')
     setIsChecked(false)
   }
 
@@ -218,7 +235,7 @@ export function NewVisitPage({
           type: locationType,
           typeLabel: locationConfig.label,
           tollRoadId: locationConfig.needsTollRoad ? tollRoadId : undefined,
-          tollRoadName,
+          tollRoadName: locationConfig.needsTollRoad ? tollRoadName : undefined,
           name: locationName.trim(),
           detail: locationDetail.trim() || undefined,
           direction: direction || undefined,
@@ -233,6 +250,9 @@ export function NewVisitPage({
           additionalNote: photo.additionalNote.trim(),
         })),
       })
+      if (locationConfig.needsTollRoad && tollRoadId !== 'other') {
+        try { localStorage.setItem('field-log-last-road', tollRoadId) } catch { /* Saving a visit must not depend on preferences. */ }
+      }
       setIsChecked(true)
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Kunjungan belum tersimpan. Coba tekan Simpan sekali lagi.')
@@ -305,25 +325,25 @@ export function NewVisitPage({
                 <label className="field-label" htmlFor="toll-road">
                   Ruas <span>*</span>
                 </label>
-                <select
+                <SearchableSelect
                   id="toll-road"
+                  label="Ruas"
                   value={tollRoadId}
-                  onChange={(event) => {
-                    setTollRoadId(event.target.value)
+                  options={[
+                    ...tollRoads.map((road) => ({ value: road.id, label: getRoadLabel(road.id) })),
+                    { value: 'other', label: 'Ruas lainnya' },
+                  ]}
+                  placeholder="Pilih ruas jalan tol"
+                  onChange={(value) => {
+                    if (value === tollRoadId) return
+                    setTollRoadId(value)
+                    setGateChoice('')
+                    setLocationName('')
+                    setLocationDetail('')
                     setIsChecked(false)
                   }}
                   required
-                >
-                  <option value="" disabled>
-                    Pilih ruas jalan tol
-                  </option>
-                  {tollRoads.map((road) => (
-                    <option key={road.id} value={road.id}>
-                      {road.name}
-                    </option>
-                  ))}
-                  <option value="other">Ruas lainnya</option>
-                </select>
+                />
 
                 {tollRoadId === 'other' && (
                   <div className="conditional-field">
@@ -352,18 +372,31 @@ export function NewVisitPage({
                 <label className="field-label" htmlFor="location-name">
                   Nama Gerbang Tol <span>*</span>
                 </label>
-                <input
+                <SearchableSelect
                   id="location-name"
-                  type="text"
-                  value={locationName}
-                  onChange={(event) => {
-                    setLocationName(event.target.value)
+                  label="Gerbang tol"
+                  value={gateChoice}
+                  options={[
+                    ...(tollGates[tollRoadId] ?? []).map((gate) => ({ value: gate, label: gate })),
+                    { value: '__other__', label: 'Gerbang lainnya · isi manual' },
+                  ]}
+                  onChange={(value) => {
+                    if (value === gateChoice) return
+                    setGateChoice(value)
+                    setLocationName(value === '__other__' ? '' : value)
+                    setLocationDetail('')
                     setIsChecked(false)
                   }}
-                  placeholder="Contoh: GT Cibubur 1"
-                  autoComplete="off"
+                  placeholder={tollRoadId ? 'Pilih gerbang tol' : 'Pilih ruas terlebih dahulu'}
+                  disabled={!tollRoadId}
                   required
                 />
+                {gateChoice === '__other__' && <div className="conditional-field">
+                  <label className="field-label" htmlFor="custom-gate">Nama gerbang <span>*</span></label>
+                  <input id="custom-gate" type="text" value={locationName}
+                    placeholder="Tuliskan nama gerbang" autoComplete="off" required
+                    onChange={(event) => { setLocationName(event.target.value); setIsChecked(false) }} />
+                </div>}
                 <label className="field-label" htmlFor="location-detail">
                   Gardu / Lajur
                 </label>

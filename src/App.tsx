@@ -12,12 +12,14 @@ import { VisitDetailPage } from './pages/VisitDetailPage'
 import type { CreateVisitInput } from './types/visit'
 import type { AuthenticatedAppProps } from './auth/AuthGate'
 import { SyncIndicator } from './components/SyncIndicator'
+import { emptyVisitFilters, type VisitFilters } from './utils/visitFilters'
 import './App.css'
 
 function App({ onSignOut }: AuthenticatedAppProps) {
   const [activeView, setActiveView] = useState<AppView>('home')
   const [selectedVisitId, setSelectedVisitId] = useState<string>()
   const [detailOrigin, setDetailOrigin] = useState<'home' | 'history'>('home')
+  const [historyFilters, setHistoryFilters] = useState<VisitFilters>({ ...emptyVisitFilters })
 
   async function handleSaveVisit(visit: CreateVisitInput) {
     await createVisit(visit)
@@ -56,7 +58,8 @@ function App({ onSignOut }: AuthenticatedAppProps) {
           />
         )}
         {activeView === 'history' && (
-          <HistoryPage onOpenVisit={(id) => handleOpenVisit(id, 'history')} />
+          <HistoryPage onOpenVisit={(id) => handleOpenVisit(id, 'history')}
+            filters={historyFilters} onFiltersChange={setHistoryFilters} />
         )}
         {activeView === 'detail' && selectedVisitId && (
           <VisitDetailPage

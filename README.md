@@ -13,6 +13,8 @@ Field Log adalah Progressive Web App untuk mencatat kegiatan lapangan jalan tol.
 - Tulisan lokasi, kegiatan, catatan, serta waktu otomatis pada hasil foto.
 - Bagikan/simpan melalui share sheet dan unduh sebagai JPG.
 - Riwayat dan detail kunjungan.
+- Dropdown ruas dan gerbang yang bisa dicari, dengan pilihan isi manual dan ruas terakhir diingat di perangkat.
+- Filter riwayat berdasarkan ruas, lokasi, waktu WIB, dan pencarian kegiatan/catatan/gardu/KM. Pilihan filter bertahan saat kembali dari detail.
 - Edit dan hapus kunjungan beserta foto.
 - Penyimpanan lokal menggunakan IndexedDB.
 - Sinkronisasi antrean offline ke PostgreSQL dan private photo storage.

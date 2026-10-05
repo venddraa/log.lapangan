@@ -596,6 +596,92 @@ button {
   gap: 11px;
 }
 
+.history-filters {
+  padding: 16px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: #ffffff;
+}
+
+.history-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.history-filters input,
+.history-filters select {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #ccd2dc;
+  border-radius: 11px;
+  color: var(--ink);
+  background: #ffffff;
+  font-size: 16px;
+}
+
+.history-filters .field-label { margin: 0 0 7px; font-size: 12px; }
+.history-filters .date-range { margin-bottom: 0; }
+
+.clear-filters {
+  min-height: 40px;
+  margin-top: 10px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--blue-800);
+  background: var(--blue-100);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.filter-error { color: #922f24; font-size: 12px; }
+.searchable-select { position: relative; min-width: 0; }
+.searchable-select input { padding-right: 30px !important; }
+.searchable-select-arrow { position: absolute; right: 12px; top: 13px; color: var(--blue-800); pointer-events: none; }
+.searchable-select input:disabled { background: var(--canvas); color: var(--muted); }
+
+.searchable-options {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  z-index: 15;
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 5px;
+  border: 1px solid #c5cfdf;
+  border-radius: 12px;
+  color: var(--ink);
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgb(6 29 73 / 16%);
+  list-style: none;
+}
+
+.searchable-options li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.searchable-options li.active,
+.searchable-options li:hover { background: var(--blue-100); color: var(--blue-800); }
+.searchable-options .searchable-empty { color: var(--muted); cursor: default; }
+
 .page-header {
   padding: calc(34px + env(safe-area-inset-top)) 20px 24px;
   color: #ffffff;
