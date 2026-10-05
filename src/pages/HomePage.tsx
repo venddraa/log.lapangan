@@ -8,12 +8,14 @@ type HomePageProps = {
   onCreateVisit: () => void
   onOpenHistory: () => void
   onOpenVisit: (id: string) => void
+  onSignOut?: () => Promise<void>
 }
 
 export function HomePage({
   onCreateVisit,
   onOpenHistory,
   onOpenVisit,
+  onSignOut,
 }: HomePageProps) {
   const [recentVisits, setRecentVisits] = useState<VisitSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -49,6 +51,11 @@ export function HomePage({
           <p>Field Log</p>
           <span>{today}</span>
         </div>
+        {onSignOut && (
+          <button className="sign-out-button" type="button" onClick={onSignOut}>
+            Keluar
+          </button>
+        )}
       </header>
 
       <main className="page-content home-page">

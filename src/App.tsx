@@ -10,9 +10,10 @@ import { HomePage } from './pages/HomePage'
 import { NewVisitPage } from './pages/NewVisitPage'
 import { VisitDetailPage } from './pages/VisitDetailPage'
 import type { CreateVisitInput } from './types/visit'
+import type { AuthenticatedAppProps } from './auth/AuthGate'
 import './App.css'
 
-function App() {
+function App({ onSignOut }: AuthenticatedAppProps) {
   const [activeView, setActiveView] = useState<AppView>('home')
   const [selectedVisitId, setSelectedVisitId] = useState<string>()
   const [detailOrigin, setDetailOrigin] = useState<'home' | 'history'>('home')
@@ -43,6 +44,7 @@ function App() {
             onCreateVisit={() => setActiveView('new')}
             onOpenHistory={() => setActiveView('history')}
             onOpenVisit={(id) => handleOpenVisit(id, 'home')}
+            onSignOut={onSignOut}
           />
         )}
         {activeView === 'new' && (

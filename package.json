@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup:users": "node scripts/create-field-log-users.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "dexie": "^4.4.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

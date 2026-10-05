@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon'
 import { getVisit, getVisitPhotos } from '../db/database'
 import type { Photo, Visit } from '../types/visit'
+import {
+  createPhotoFilename,
+  createStampedPhoto,
+  downloadPhoto,
+  getPhotoStampLines,
+} from '../utils/image'
 
 type VisitDetailPageProps = {
   visitId: string
@@ -27,6 +33,77 @@ export function VisitDetailPage({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [processingAction, setProcessingAction] = useState('')
+  const [photoActionStatus, setPhotoActionStatus] = useState<{
+    photoId: string
+    message: string
+    isError?: boolean
+  }>()
+
+  async function prepareStampedPhoto(photo: PhotoWithPreview, index: number) {
+    if (!visit) throw new Error('Kunjungan tidak ditemukan.')
+    const blob = await createStampedPhoto(photo.blob, visit, photo)
+    return {
+      blob,
+      filename: createPhotoFilename(visit, index),
+    }
+  }
+
+  async function handleDownloadPhoto(photo: PhotoWithPreview, index: number) {
+    setProcessingAction(`${photo.id}:download`)
+    setPhotoActionStatus(undefined)
+    try {
+      const { blob, filename } = await prepareStampedPhoto(photo, index)
+      downloadPhoto(blob, filename)
+      setPhotoActionStatus({
+        photoId: photo.id,
+        message: 'Foto bertulisan berhasil disiapkan.',
+      })
+    } catch {
+      setPhotoActionStatus({
+        photoId: photo.id,
+        message: 'Foto belum berhasil diunduh. Coba sekali lagi.',
+        isError: true,
+      })
+    } finally {
+      setProcessingAction('')
+    }
+  }
+
+  async function handleSharePhoto(photo: PhotoWithPreview, index: number) {
+    setProcessingAction(`${photo.id}:share`)
+    setPhotoActionStatus(undefined)
+    try {
+      const { blob, filename } = await prepareStampedPhoto(photo, index)
+      const file = new File([blob], filename, { type: 'image/jpeg' })
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: visit?.activityName || 'Dokumentasi Field Log',
+        })
+        setPhotoActionStatus({
+          photoId: photo.id,
+          message: 'Foto siap dibagikan atau disimpan.',
+        })
+      } else {
+        downloadPhoto(blob, filename)
+        setPhotoActionStatus({
+          photoId: photo.id,
+          message: 'Perangkat ini memakai unduhan sebagai pengganti bagikan.',
+        })
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      setPhotoActionStatus({
+        photoId: photo.id,
+        message: 'Foto belum berhasil dibagikan. Coba sekali lagi.',
+        isError: true,
+      })
+    } finally {
+      setProcessingAction('')
+    }
+  }
 
   async function handleDelete() {
     setIsDeleting(true)
@@ -161,9 +238,19 @@ export function VisitDetailPage({
             <div className="detail-photo-list">
               {photos.map((photo, index) => (
                 <figure className="detail-photo" key={photo.id}>
-                  <img src={photo.previewUrl} alt={`Foto kunjungan ${index + 1}`} />
+                  <div className="stamped-photo-preview">
+                    <img src={photo.previewUrl} alt={`Foto kunjungan ${index + 1}`} />
+                    <div className="photo-stamp-preview" aria-hidden="true">
+                      {getPhotoStampLines(visit, photo).map((line, lineIndex) => (
+                        <span key={`${line}-${lineIndex}`}>{line}</span>
+                      ))}
+                    </div>
+                  </div>
                   <figcaption>
-                    <span>Foto {index + 1}</span>
+                    <div className="photo-caption-heading">
+                      <span>Foto {index + 1}</span>
+                      <span>Siap dengan tulisan</span>
+                    </div>
                     {photo.note && (
                       <div>
                         <strong>Catatan</strong>
@@ -178,6 +265,38 @@ export function VisitDetailPage({
                     )}
                     {!photo.note && !photo.additionalNote && (
                       <p className="photo-note-empty">Tidak ada catatan.</p>
+                    )}
+                    <div className="photo-export-actions">
+                      <button
+                        type="button"
+                        onClick={() => handleSharePhoto(photo, index)}
+                        disabled={Boolean(processingAction)}
+                      >
+                        {processingAction === `${photo.id}:share`
+                          ? 'Menyiapkan…'
+                          : 'Bagikan / Simpan'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadPhoto(photo, index)}
+                        disabled={Boolean(processingAction)}
+                      >
+                        {processingAction === `${photo.id}:download`
+                          ? 'Menyiapkan…'
+                          : 'Unduh JPG'}
+                      </button>
+                    </div>
+                    {photoActionStatus?.photoId === photo.id && (
+                      <p
+                        className={
+                          photoActionStatus.isError
+                            ? 'photo-action-status error'
+                            : 'photo-action-status'
+                        }
+                        role="status"
+                      >
+                        {photoActionStatus.message}
+                      </p>
                     )}
                   </figcaption>
                 </figure>
