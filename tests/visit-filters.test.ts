@@ -39,3 +39,11 @@ test('manual roads stay searchable and distinct from known road IDs', () => {
   expect(ids(filterVisits(visits, { ...emptyVisitFilters, road: 'custom:Ruas pribadi' }, now))).toEqual(['manual'])
   expect(ids(filterVisits(visits, { ...emptyVisitFilters, query: 'perlu diperiksa' }, now))).toEqual(['manual', 'known'])
 })
+
+test('activity filter groups spelling variants but does not include a different activity', () => {
+  const first = visit('first', '2026-10-05T02:00:00Z')
+  const variant = { ...first, id: 'variant', activityName: '  survey   rfid ' }
+  const other = { ...first, id: 'other', activityName: 'Survey RFID lanjutan' }
+  expect(ids(filterVisits([first, variant, other], { ...emptyVisitFilters, activity: 'Survey RFID' }, now)))
+    .toEqual(['first', 'variant'])
+})

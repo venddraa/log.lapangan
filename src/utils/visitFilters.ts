@@ -1,4 +1,5 @@
 import type { VisitSummary } from '../types/visit'
+import { activityKey } from './activityNames'
 
 export type VisitFilters = {
   road: string
@@ -7,10 +8,11 @@ export type VisitFilters = {
   start: string
   end: string
   query: string
+  activity: string
 }
 
 export const emptyVisitFilters: VisitFilters = {
-  road: '', location: '', period: 'all', start: '', end: '', query: '',
+  road: '', location: '', period: 'all', start: '', end: '', query: '', activity: '',
 }
 
 // Hari kalender WIB, konsisten dengan waktu yang tertulis di foto.
@@ -36,6 +38,7 @@ export function filterVisits(visits: VisitSummary[], filters: VisitFilters, now 
   return visits.filter((visit) => {
     if (filters.road && roadKey(visit) !== filters.road) return false
     if (filters.location && visit.primaryLocation.name !== filters.location) return false
+    if (filters.activity && activityKey(visit.activityName) !== activityKey(filters.activity)) return false
     const day = jakartaDate(visit.visitDate)
     if (filters.period === 'today' && day !== today) return false
     if (filters.period === 'week' && (day < weekStart || day > today)) return false

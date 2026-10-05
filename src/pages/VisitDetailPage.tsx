@@ -1,3 +1,4 @@
+import { combinedPhotoNote } from '../utils/activityNames'
 import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon'
 import { getVisit, getVisitPhotos } from '../db/database'
@@ -219,12 +220,12 @@ export function VisitDetailPage({
           </dl>
         </section>
 
-        <section className="detail-section" aria-labelledby="detail-notes">
+        {visit.notes && <section className="detail-section" aria-labelledby="detail-notes">
           <h2 id="detail-notes">Catatan umum</h2>
           <p className={visit.notes ? 'detail-notes' : 'detail-notes empty'}>
-            {visit.notes || 'Tidak ada catatan umum.'}
+            {visit.notes}
           </p>
-        </section>
+        </section>}
 
         <section className="detail-section photo-detail-section" aria-labelledby="detail-photos">
           <div className="detail-section-title">
@@ -251,16 +252,10 @@ export function VisitDetailPage({
                       <span>Foto {index + 1}</span>
                       <span>Siap dengan tulisan</span>
                     </div>
-                    {photo.note && (
+                    {combinedPhotoNote(photo) && (
                       <div>
                         <strong>Catatan</strong>
-                        <p>{photo.note}</p>
-                      </div>
-                    )}
-                    {photo.additionalNote && (
-                      <div>
-                        <strong>Catatan tambahan</strong>
-                        <p>{photo.additionalNote}</p>
+                        <p>{combinedPhotoNote(photo)}</p>
                       </div>
                     )}
                     {!photo.note && !photo.additionalNote && (

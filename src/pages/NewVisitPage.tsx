@@ -24,6 +24,8 @@ import type {
   Visit,
 } from '../types/visit'
 import { compressImage, formatFileSize } from '../utils/image'
+import { getAllVisits } from '../db/database'
+import { activityNames, combinedPhotoNote } from '../utils/activityNames'
 
 type NewVisitPageProps = {
   onBack: () => void
@@ -38,7 +40,6 @@ type PhotoDraft = {
   blob: Blob
   previewUrl: string
   note: string
-  additionalNote: string
 }
 
 function formatVisitTime(date: Date) {
@@ -108,7 +109,9 @@ export function NewVisitPage({
   )
   const [activityCategory, setActivityCategory] =
     useState<ActivityCategory | ''>(initialVisit?.activityCategory ?? '')
-  const [notes, setNotes] = useState(initialVisit?.notes ?? '')
+  const notes = initialVisit?.notes ?? ''
+  const [pendingNote, setPendingNote] = useState('')
+  const [previousActivities, setPreviousActivities] = useState<string[]>([])
   const [isChecked, setIsChecked] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -121,6 +124,21 @@ export function NewVisitPage({
   const locationConfig = locationTypes.find(
     (location) => location.id === locationType,
   )!
+
+  useEffect(() => {
+    let mounted = true
+    const refresh = () => { void getAllVisits().then((visits) => {
+      if (mounted) setPreviousActivities(activityNames(visits))
+    }).catch(() => { /* Free typing remains available if history cannot load. */ }) }
+    refresh()
+    window.addEventListener('field-log-cloud-change', refresh)
+    window.addEventListener('field-log-change', refresh)
+    return () => {
+      mounted = false
+      window.removeEventListener('field-log-cloud-change', refresh)
+      window.removeEventListener('field-log-change', refresh)
+    }
+  }, [])
 
   useEffect(() => {
     const urls = previewUrls.current
@@ -140,8 +158,7 @@ export function NewVisitPage({
         id: photo.id,
         blob: photo.blob,
         previewUrl,
-        note: photo.note,
-        additionalNote: photo.additionalNote ?? '',
+        note: combinedPhotoNote(photo),
       }
     })
     setPhotos(drafts)
@@ -152,6 +169,7 @@ export function NewVisitPage({
     event.target.value = ''
     if (selectedFiles.length === 0) return
 
+    const noteForSelection = selectedFiles.length === 1 ? pendingNote.trim() : ''
     setPhotoError('')
     setIsProcessingPhotos(true)
     const processedPhotos: PhotoDraft[] = []
@@ -167,8 +185,7 @@ export function NewVisitPage({
           id: crypto.randomUUID(),
           blob,
           previewUrl,
-          note: '',
-          additionalNote: '',
+          note: noteForSelection,
         })
       } catch {
         setPhotoError(
@@ -178,18 +195,18 @@ export function NewVisitPage({
     }
 
     setPhotos((currentPhotos) => [...currentPhotos, ...processedPhotos])
+    if (processedPhotos.length && selectedFiles.length === 1) setPendingNote('')
     setIsProcessingPhotos(false)
     setIsChecked(false)
   }
 
   function updatePhotoNote(
     id: string,
-    field: 'note' | 'additionalNote',
     value: string,
   ) {
     setPhotos((currentPhotos) =>
       currentPhotos.map((photo) =>
-        photo.id === id ? { ...photo, [field]: value } : photo,
+        photo.id === id ? { ...photo, note: value } : photo,
       ),
     )
     setIsChecked(false)
@@ -221,6 +238,10 @@ export function NewVisitPage({
     event.preventDefault()
     setIsChecked(false)
     setSaveError('')
+    if (pendingNote.trim()) {
+      setSaveError('Catatan belum dipasangkan ke foto. Ambil/pilih satu foto, atau kosongkan catatan sebelum menyimpan.')
+      return
+    }
     setIsSaving(true)
 
     const tollRoad = tollRoads.find((road) => road.id === tollRoadId)
@@ -247,7 +268,7 @@ export function NewVisitPage({
           id: photo.id,
           blob: photo.blob,
           note: photo.note.trim(),
-          additionalNote: photo.additionalNote.trim(),
+          additionalNote: '',
         })),
       })
       if (locationConfig.needsTollRoad && tollRoadId !== 'other') {
@@ -528,18 +549,11 @@ export function NewVisitPage({
             <label className="field-label" htmlFor="activity-name">
               Nama Kegiatan <span>*</span>
             </label>
-            <input
-              id="activity-name"
-              type="text"
-              value={activityName}
-              onChange={(event) => {
-                setActivityName(event.target.value)
-                setIsChecked(false)
-              }}
-              placeholder="Contoh: Survey titik tiang RFID"
-              autoComplete="off"
-              required
-            />
+            <SearchableSelect id="activity-name" label="Nama kegiatan" value={activityName}
+              options={previousActivities.map((name) => ({ value: name, label: name }))}
+              onChange={(value) => { setActivityName(value); setIsChecked(false) }}
+              placeholder="Contoh: Survey titik tiang RFID" allowCustom required />
+            <p className="field-hint">Ketik nama baru atau pilih kegiatan sebelumnya.</p>
 
             <div className="optional-label-row">
               <span className="field-label">Kategori</span>
@@ -583,37 +597,20 @@ export function NewVisitPage({
             </div>
           </section>
 
-          <section className="form-section" aria-labelledby="notes-heading">
+          <section className="form-section photo-section" aria-labelledby="photo-heading">
             <div className="form-section-heading">
               <span>3</span>
               <div>
-                <h2 id="notes-heading">Catatan umum</h2>
-                <p>Ringkasan kegiatan atau informasi lintas lokasi.</p>
-              </div>
-            </div>
-            <label className="field-label visually-hidden" htmlFor="notes">
-              Catatan umum
-            </label>
-            <textarea
-              id="notes"
-              value={notes}
-              onChange={(event) => {
-                setNotes(event.target.value)
-                setIsChecked(false)
-              }}
-              rows={5}
-              placeholder="Tulis tujuan, kondisi umum, atau tindak lanjut..."
-            />
-          </section>
-
-          <section className="form-section photo-section" aria-labelledby="photo-heading">
-            <div className="form-section-heading">
-              <span>4</span>
-              <div>
                 <h2 id="photo-heading">Foto</h2>
-                <p>Tambahkan dokumentasi dari kamera atau galeri.</p>
+                <p>Satu foto, satu catatan. Isi dulu, lalu ambil foto.</p>
               </div>
             </div>
+
+            <label className="field-label" htmlFor="pending-photo-note">Catatan</label>
+            <textarea id="pending-photo-note" value={pendingNote}
+              onChange={(event) => { setPendingNote(event.target.value); setIsChecked(false) }} disabled={isProcessingPhotos}
+              rows={3} placeholder="Contoh: Posisi rencana tiang RFID" />
+            <p className="field-hint">Opsional. Untuk beberapa foto dari galeri, isi catatan masing-masing setelah dipilih.</p>
 
             <div className="photo-actions">
               <label className="photo-action primary-photo-action">
@@ -641,7 +638,7 @@ export function NewVisitPage({
             </div>
 
             <p className="photo-privacy-note">
-              Foto dikompresi dan disimpan hanya di perangkat ini.
+              Foto dikompresi di perangkat, lalu disinkronkan saat online.
             </p>
 
             {isProcessingPhotos && (
@@ -687,29 +684,10 @@ export function NewVisitPage({
                         id={`photo-note-${photo.id}`}
                         value={photo.note}
                         onChange={(event) =>
-                          updatePhotoNote(photo.id, 'note', event.target.value)
+                          updatePhotoNote(photo.id, event.target.value)
                         }
                         rows={2}
                         placeholder="Keterangan utama foto"
-                      />
-                      <label
-                        className="field-label"
-                        htmlFor={`photo-additional-note-${photo.id}`}
-                      >
-                        Catatan tambahan
-                      </label>
-                      <textarea
-                        id={`photo-additional-note-${photo.id}`}
-                        value={photo.additionalNote}
-                        onChange={(event) =>
-                          updatePhotoNote(
-                            photo.id,
-                            'additionalNote',
-                            event.target.value,
-                          )
-                        }
-                        rows={2}
-                        placeholder="Detail pelengkap jika diperlukan"
                       />
                     </div>
                   </article>
@@ -732,7 +710,7 @@ export function NewVisitPage({
             </div>
           )}
 
-          <button className="save-button" type="submit" disabled={isSaving}>
+          <button className="save-button" type="submit" disabled={isSaving || isProcessingPhotos}>
             {isSaving
               ? 'Menyimpan…'
               : mode === 'edit'

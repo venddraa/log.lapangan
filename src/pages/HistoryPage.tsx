@@ -6,6 +6,7 @@ import type { VisitSummary } from '../types/visit'
 import { SearchableSelect } from '../components/SearchableSelect'
 import { getRoadLabel, tollRoads } from '../data/visitOptions'
 import { emptyVisitFilters, filterVisits, roadKey, type VisitFilters } from '../utils/visitFilters'
+import { activityNames } from '../utils/activityNames'
 
 type HistoryPageProps = {
   onOpenVisit: (id: string) => void
@@ -28,7 +29,7 @@ export function HistoryPage({ onOpenVisit, filters, onFiltersChange }: HistoryPa
     .map((visit) => visit.primaryLocation.name).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'id', { numeric: true }))
   const filteredVisits = filterVisits(visits, filters)
-  const isFiltered = Boolean(filters.road || filters.location || filters.period !== 'all' || filters.query)
+  const isFiltered = Boolean(filters.road || filters.location || filters.activity || filters.period !== 'all' || filters.query)
   const changeFilter = <K extends keyof VisitFilters>(key: K, value: VisitFilters[K]) => {
     onFiltersChange({ ...filters, [key]: value, ...(key === 'road' ? { location: '' } : {}) })
   }
@@ -84,6 +85,10 @@ export function HistoryPage({ onOpenVisit, filters, onFiltersChange }: HistoryPa
                 onChange={(value) => changeFilter('location', value)} />
             </div>
           </div>
+          <label className="field-label" htmlFor="history-activity">Nama kegiatan</label>
+          <SearchableSelect id="history-activity" label="Nama kegiatan" value={filters.activity}
+            options={[{ value: '', label: 'Semua kegiatan' }, ...activityNames(visits).map((name) => ({ value: name, label: name }))]}
+            onChange={(value) => changeFilter('activity', value)} />
           <label className="field-label" htmlFor="history-period">Waktu</label>
           <select id="history-period" value={filters.period}
             onChange={(event) => changeFilter('period', event.target.value as VisitFilters['period'])}>
