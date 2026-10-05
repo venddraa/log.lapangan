@@ -43,7 +43,7 @@ export function EditVisitPage({
   }, [visitId])
 
   async function handleSave(input: CreateVisitInput) {
-    await updateVisit(visitId, input)
+    await updateVisit(visitId, input, visit?.updatedAt)
     onSaved()
   }
 

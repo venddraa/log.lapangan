@@ -321,7 +321,7 @@ export function VisitDetailPage({
         {showDeleteConfirmation && (
           <section className="delete-confirmation" role="alertdialog" aria-modal="true">
             <h2>Hapus kunjungan ini?</h2>
-            <p>Catatan dan seluruh foto di dalamnya akan dihapus dari perangkat.</p>
+            <p>Catatan dan seluruh foto akan dihapus dari perangkat, lalu dari dokumentasi divisi saat tersinkron.</p>
             {deleteError && <div className="form-error">{deleteError}</div>}
             <div>
               <button

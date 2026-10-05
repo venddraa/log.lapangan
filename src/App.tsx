@@ -11,6 +11,7 @@ import { NewVisitPage } from './pages/NewVisitPage'
 import { VisitDetailPage } from './pages/VisitDetailPage'
 import type { CreateVisitInput } from './types/visit'
 import type { AuthenticatedAppProps } from './auth/AuthGate'
+import { SyncIndicator } from './components/SyncIndicator'
 import './App.css'
 
 function App({ onSignOut }: AuthenticatedAppProps) {
@@ -39,6 +40,7 @@ function App({ onSignOut }: AuthenticatedAppProps) {
   return (
     <div className="app-shell">
       <div className="app-frame">
+        {onSignOut && <SyncIndicator />}
         {activeView === 'home' && (
           <HomePage
             onCreateVisit={() => setActiveView('new')}

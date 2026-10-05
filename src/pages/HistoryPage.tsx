@@ -15,16 +15,21 @@ export function HistoryPage({ onOpenVisit }: HistoryPageProps) {
   useEffect(() => {
     let isMounted = true
 
-    getAllVisits()
-      .then((storedVisits) => {
-        if (isMounted) setVisits(storedVisits)
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false)
-      })
+    const refresh = () => {
+      void getAllVisits()
+        .then((storedVisits) => {
+          if (isMounted) setVisits(storedVisits)
+        })
+        .finally(() => {
+          if (isMounted) setIsLoading(false)
+        })
+    }
+    refresh()
+    window.addEventListener('field-log-cloud-change', refresh)
 
     return () => {
       isMounted = false
+      window.removeEventListener('field-log-cloud-change', refresh)
     }
   }, [])
 

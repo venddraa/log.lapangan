@@ -227,14 +227,15 @@ export function NewVisitPage({
         notes: notes.trim(),
         visitDate: startedAt.toISOString(),
         photos: photos.map((photo) => ({
+          id: photo.id,
           blob: photo.blob,
           note: photo.note.trim(),
           additionalNote: photo.additionalNote.trim(),
         })),
       })
       setIsChecked(true)
-    } catch {
-      setSaveError('Kunjungan belum tersimpan. Coba tekan Simpan sekali lagi.')
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Kunjungan belum tersimpan. Coba tekan Simpan sekali lagi.')
     } finally {
       setIsSaving(false)
     }

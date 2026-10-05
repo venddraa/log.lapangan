@@ -19,6 +19,8 @@ export function HomePage({
 }: HomePageProps) {
   const [recentVisits, setRecentVisits] = useState<VisitSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [logoutError, setLogoutError] = useState('')
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const today = new Intl.DateTimeFormat('id-ID', {
     weekday: 'long',
     day: 'numeric',
@@ -28,16 +30,21 @@ export function HomePage({
   useEffect(() => {
     let isMounted = true
 
-    getRecentVisits()
-      .then((visits) => {
-        if (isMounted) setRecentVisits(visits)
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false)
-      })
+    const refresh = () => {
+      void getRecentVisits()
+        .then((visits) => {
+          if (isMounted) setRecentVisits(visits)
+        })
+        .finally(() => {
+          if (isMounted) setIsLoading(false)
+        })
+    }
+    refresh()
+    window.addEventListener('field-log-cloud-change', refresh)
 
     return () => {
       isMounted = false
+      window.removeEventListener('field-log-cloud-change', refresh)
     }
   }, [])
 
@@ -52,13 +59,21 @@ export function HomePage({
           <span>{today}</span>
         </div>
         {onSignOut && (
-          <button className="sign-out-button" type="button" onClick={onSignOut}>
-            Keluar
+          <button className="sign-out-button" type="button" disabled={isSigningOut}
+            onClick={async () => {
+              setIsSigningOut(true)
+              setLogoutError('')
+              try { await onSignOut() }
+              catch (error) { setLogoutError(error instanceof Error ? error.message : 'Belum bisa keluar. Coba lagi.') }
+              finally { setIsSigningOut(false) }
+            }}>
+            {isSigningOut ? 'Menunggu…' : 'Keluar'}
           </button>
         )}
       </header>
 
       <main className="page-content home-page">
+        {logoutError && <p className="form-error" role="alert">{logoutError}</p>}
         <section className="welcome-panel">
           <p className="panel-label">Siap ke lapangan?</p>
           <h1>Catat kunjungan dalam satu tempat.</h1>

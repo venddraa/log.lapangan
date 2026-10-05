@@ -8,6 +8,7 @@ import {
   type MemberCode,
 } from './members'
 import { isSupabaseConfigured, supabase } from './supabase'
+import { clearSyncedCache } from '../db/sync'
 
 export type AuthenticatedAppProps = {
   memberCode?: MemberCode
@@ -25,6 +26,8 @@ export function AuthGate({ children }: AuthGateProps) {
   const [pin, setPin] = useState('')
   const [loginError, setLoginError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [verifiedUserId, setVerifiedUserId] = useState('')
+  const [accessError, setAccessError] = useState('')
 
   useEffect(() => {
     if (!supabase) return
@@ -50,6 +53,35 @@ export function AuthGate({ children }: AuthGateProps) {
     }
   }, [])
 
+  useEffect(() => {
+    const userId = session?.user.id
+    if (!userId || !supabase) return
+    let active = true
+    const checkAccess = async () => {
+      if (!navigator.onLine) {
+        if (localStorage.getItem('field-log-verified-member') === userId) {
+          if (active) setVerifiedUserId(userId)
+        } else if (active) {
+          setAccessError('Hubungkan internet untuk memverifikasi akun pada perangkat ini.')
+        }
+        return
+      }
+      const result = await supabase!.from('team_members').select('member_code').single()
+      if (!active) return
+      if (result.error || !result.data || !isMemberCode(result.data.member_code)) {
+        setAccessError('Akun belum bisa diverifikasi. Periksa koneksi atau hubungi admin.')
+        return
+      }
+      localStorage.setItem('field-log-verified-member', userId)
+      setVerifiedUserId(userId)
+      setAccessError('')
+    }
+    void checkAccess().catch(() => {
+      if (active) setAccessError('Akun belum bisa diverifikasi. Periksa koneksi dan buka ulang aplikasi.')
+    })
+    return () => { active = false }
+  }, [session?.user.id])
+
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const normalizedCode = memberCode.trim().toLowerCase()
@@ -60,24 +92,36 @@ export function AuthGate({ children }: AuthGateProps) {
 
     setIsSubmitting(true)
     setLoginError('')
-    const { error } = await supabase.auth.signInWithPassword({
-      email: getMemberEmail(normalizedCode),
-      password: getMemberPassword(normalizedCode, pin),
-    })
-
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: getMemberEmail(normalizedCode),
+        password: getMemberPassword(normalizedCode, pin),
+      })
+      if (error) throw error
+    } catch {
       setLoginError('Kode anggota atau PIN belum sesuai.')
       setPin('')
+    } finally {
+      setIsSubmitting(false)
     }
-    setIsSubmitting(false)
   }
 
   async function handleSignOut() {
     if (!supabase) return
-    await supabase.auth.signOut()
+    await clearSyncedCache()
+    const { error } = await supabase.auth.signOut()
+    if (error) throw error
+    localStorage.removeItem('field-log-verified-member')
+    setVerifiedUserId('')
   }
 
-  if (!isSupabaseConfigured) return children({})
+  if (!isSupabaseConfigured) {
+    if (import.meta.env.DEV) return children({})
+    return <div className="auth-shell"><div className="auth-card">
+      <h1>Field Log belum terhubung</h1>
+      <p className="auth-copy">Konfigurasi login belum tersedia. Hubungi admin untuk mengaktifkan aplikasi.</p>
+    </div></div>
+  }
 
   if (isLoading) {
     return (
@@ -88,6 +132,12 @@ export function AuthGate({ children }: AuthGateProps) {
   }
 
   if (session) {
+    if (verifiedUserId !== session.user.id) {
+      return <div className="auth-shell"><div className="auth-card">
+        <p>{accessError || 'Memverifikasi akses divisi…'}</p>
+        {accessError && <button type="button" onClick={() => window.location.reload()}>Coba lagi</button>}
+      </div></div>
+    }
     const activeMemberCode = session.user.email?.split('@')[0] ?? ''
     return children({
       memberCode: isMemberCode(activeMemberCode) ? activeMemberCode : undefined,

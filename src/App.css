@@ -16,6 +16,43 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+.sync-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  color: var(--blue-800);
+  background: var(--blue-100);
+  font-size: 11px;
+  line-height: 1.4;
+  flex-wrap: wrap;
+}
+
+.sync-conflict-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.sync-indicator.error {
+  color: #922f24;
+  background: #fff0ed;
+}
+
+.sync-indicator button {
+  min-height: 36px;
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 5px 9px;
+  color: inherit;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
 .auth-shell {
   min-height: 100svh;
   display: grid;
