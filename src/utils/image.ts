@@ -124,10 +124,14 @@ export async function createStampedPhoto(
 
   const content = getPhotoStampContent(visit, photo)
   const shortestSide = Math.min(canvas.width, canvas.height)
-  const horizontalPadding = Math.max(28, Math.round(shortestSide * 0.04))
+  const panelLeft = Math.max(4, Math.round(shortestSide * 0.02))
+  const panelTop = panelLeft
+  const horizontalPadding = Math.max(8, Math.round(shortestSide * 0.025))
   const accentWidth = Math.max(7, Math.round(shortestSide * 0.008))
-  const textLeft = horizontalPadding + accentWidth + Math.round(shortestSide * 0.025)
-  const textWidth = canvas.width - textLeft - horizontalPadding
+  const accentGap = Math.round(shortestSide * 0.018)
+  const textLeft = panelLeft + horizontalPadding + accentWidth + accentGap
+  const maxPanelWidth = Math.min(canvas.width - panelLeft * 2, canvas.width * 0.78)
+  const textWidth = Math.max(1, maxPanelWidth - horizontalPadding * 2 - accentWidth - accentGap)
   const headingSize = Math.max(26, Math.round(shortestSide * 0.045))
   const bodySize = Math.max(20, Math.round(shortestSide * 0.032))
   const metaSize = Math.max(18, Math.round(shortestSide * 0.027))
@@ -157,22 +161,25 @@ export async function createStampedPhoto(
   const innerVerticalPadding = Math.max(22, Math.round(shortestSide * 0.03))
   const rowHeights = rows.map((row) => Math.round(row.size * 1.22))
   const panelHeight = Math.min(
-    canvas.height,
+    canvas.height - panelTop * 2,
     innerVerticalPadding * 2 +
       rowHeights.reduce((total, height) => total + height, 0) +
       rowGap * Math.max(0, rows.length - 1),
   )
-  const panelTop = canvas.height - panelHeight
-
-  const backgroundGradient = context.createLinearGradient(0, panelTop, canvas.width, canvas.height)
-  backgroundGradient.addColorStop(0, 'rgba(5, 28, 73, 0.91)')
-  backgroundGradient.addColorStop(1, 'rgba(10, 43, 102, 0.96)')
-  context.fillStyle = backgroundGradient
-  context.fillRect(0, panelTop, canvas.width, panelHeight)
+  const widestRow = Math.max(...rows.map((row) => {
+    context.font = `${row.weight} ${row.size}px Inter, Arial, sans-serif`
+    return Math.min(textWidth, context.measureText(row.text).width)
+  }))
+  const panelWidth = Math.min(maxPanelWidth, widestRow + horizontalPadding * 2 + accentWidth + accentGap)
+  context.fillStyle = 'rgba(5, 28, 73, 0.32)'
+  context.fillRect(panelLeft, panelTop, panelWidth, panelHeight)
 
   context.fillStyle = '#ffd329'
-  context.fillRect(horizontalPadding, panelTop + innerVerticalPadding, accentWidth, panelHeight - innerVerticalPadding * 2)
+  context.fillRect(panelLeft + horizontalPadding, panelTop + innerVerticalPadding, accentWidth, panelHeight - innerVerticalPadding * 2)
 
+  context.shadowColor = 'rgba(0, 0, 0, 0.85)'
+  context.shadowBlur = Math.max(2, shortestSide * 0.004)
+  context.shadowOffsetY = Math.max(1, shortestSide * 0.001)
   let y = panelTop + innerVerticalPadding
   rows.forEach((row, index) => {
     context.font = `${row.weight} ${row.size}px Inter, Arial, sans-serif`
