@@ -81,7 +81,7 @@ export function VisitDetailPage({
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: visit?.activityName || 'Dokumentasi Field Log',
+          title: visit?.activityName || 'Dokumentasi Log Lapangan',
         })
         setPhotoActionStatus({
           photoId: photo.id,

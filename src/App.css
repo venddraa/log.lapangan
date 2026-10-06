@@ -72,43 +72,11 @@ button {
 }
 
 .auth-brand-mark {
-  position: relative;
   width: 58px;
   height: 58px;
-  overflow: hidden;
+  flex: 0 0 auto;
   border-radius: 18px;
-  background: var(--blue-900);
-}
-
-.auth-brand-mark::before,
-.auth-brand-mark::after,
-.auth-brand-mark span {
-  position: absolute;
-  background: var(--yellow-400);
-  content: '';
-  transform: rotate(-36deg);
-}
-
-.auth-brand-mark::before {
-  width: 9px;
-  height: 52px;
-  top: 13px;
-  left: 13px;
-}
-
-.auth-brand-mark::after {
-  width: 9px;
-  height: 38px;
-  top: -7px;
-  right: 11px;
-}
-
-.auth-brand-mark span {
-  width: 7px;
-  height: 17px;
-  top: 21px;
-  left: 27px;
-  border-radius: 5px;
+  object-fit: cover;
 }
 
 .auth-kicker {
@@ -233,44 +201,11 @@ button {
 }
 
 .brand-mark {
-  position: relative;
   width: 42px;
   height: 42px;
   flex: 0 0 auto;
-  overflow: hidden;
   border-radius: 13px;
-  background: var(--blue-900);
-}
-
-.brand-mark::before,
-.brand-mark::after,
-.brand-mark span {
-  position: absolute;
-  content: '';
-  background: var(--yellow-400);
-  transform: rotate(-36deg);
-}
-
-.brand-mark::before {
-  width: 7px;
-  height: 39px;
-  top: 10px;
-  left: 9px;
-}
-
-.brand-mark::after {
-  width: 7px;
-  height: 28px;
-  top: -5px;
-  right: 8px;
-}
-
-.brand-mark span {
-  width: 5px;
-  height: 13px;
-  top: 15px;
-  left: 20px;
-  border-radius: 5px;
+  object-fit: cover;
 }
 
 .brand-copy p,

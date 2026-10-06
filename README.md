@@ -1,6 +1,6 @@
-# Field Log
+# Log Lapangan
 
-Field Log adalah Progressive Web App untuk mencatat kegiatan lapangan jalan tol. Aplikasi dirancang mobile-first, dapat dipasang dari Safari ke Home Screen iPhone, dan tetap bisa digunakan tanpa koneksi setelah pernah dibuka.
+Log Lapangan adalah Progressive Web App untuk mencatat kegiatan lapangan jalan tol. Aplikasi dirancang mobile-first, dapat dipasang dari Safari ke Home Screen iPhone, dan tetap bisa digunakan tanpa koneksi setelah pernah dibuka.
 
 ## Fitur
 

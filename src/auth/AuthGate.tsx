@@ -118,7 +118,7 @@ export function AuthGate({ children }: AuthGateProps) {
   if (!isSupabaseConfigured) {
     if (import.meta.env.DEV) return children({})
     return <div className="auth-shell"><div className="auth-card">
-      <h1>Field Log belum terhubung</h1>
+      <h1>Log Lapangan belum terhubung</h1>
       <p className="auth-copy">Konfigurasi login belum tersedia. Hubungi admin untuk mengaktifkan aplikasi.</p>
     </div></div>
   }
@@ -126,7 +126,7 @@ export function AuthGate({ children }: AuthGateProps) {
   if (isLoading) {
     return (
       <div className="auth-shell">
-        <div className="auth-loading">Menyiapkan Field Log…</div>
+        <div className="auth-loading">Menyiapkan Log Lapangan…</div>
       </div>
     )
   }
@@ -148,10 +148,8 @@ export function AuthGate({ children }: AuthGateProps) {
   return (
     <div className="auth-shell">
       <main className="auth-card">
-        <div className="auth-brand-mark" aria-hidden="true">
-          <span />
-        </div>
-        <p className="auth-kicker">Field Log</p>
+        <img className="auth-brand-mark" src="/barca.jpeg" alt="" />
+        <p className="auth-kicker">Log Lapangan</p>
         <h1>Masuk ke catatan lapangan</h1>
         <p className="auth-copy">Gunakan kode anggota dan PIN yang sudah diberikan.</p>
 

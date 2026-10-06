@@ -51,7 +51,7 @@ for (const memberCode of memberCodes) {
   }
 }
 
-console.log('Lima akun Field Log siap digunakan.')
+console.log('Lima akun Log Lapangan siap digunakan.')
 
 async function addToTeam(userId, memberCode) {
   const { error } = await supabase

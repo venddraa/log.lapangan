@@ -51,11 +51,9 @@ export function HomePage({
   return (
     <>
       <header className="topbar">
-        <div className="brand-mark" aria-hidden="true">
-          <span />
-        </div>
+        <img className="brand-mark" src="/barca.jpeg" alt="" />
         <div className="brand-copy">
-          <p>Field Log</p>
+          <p>Log Lapangan</p>
           <span>{today}</span>
         </div>
         {onSignOut && (

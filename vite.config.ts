@@ -9,10 +9,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['pwa-icon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['barca.jpeg', 'barca-apple-touch.png'],
       manifest: {
-        name: 'Field Log',
-        short_name: 'Field Log',
+        name: 'Log Lapangan',
+        short_name: 'Log Lapangan',
         description: 'Dokumentasi kegiatan lapangan yang cepat dan offline.',
         lang: 'id-ID',
         start_url: '/',
@@ -24,19 +24,19 @@ export default defineConfig({
         categories: ['productivity', 'utilities'],
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'barca-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'barca-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: 'pwa-maskable-512x512.png',
+            src: 'barca-maskable-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
@@ -44,7 +44,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,jpeg}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         clientsClaim: true,
