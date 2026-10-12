@@ -67,10 +67,12 @@ export function HistoryPage({ onOpenVisit, filters, onFiltersChange }: HistoryPa
       </header>
       <main className="page-content history-page">
         <section className="history-filters" aria-label="Filter riwayat">
-          <label className="field-label" htmlFor="history-search">Cari dokumentasi</label>
-          <input id="history-search" type="search" value={filters.query}
-            placeholder="Kegiatan, catatan, gardu, atau KM…"
-            onChange={(event) => changeFilter('query', event.target.value)} />
+          <div className="history-filter-field history-search-field">
+            <label className="field-label" htmlFor="history-search">Cari dokumentasi</label>
+            <input id="history-search" type="search" value={filters.query}
+              placeholder="Kegiatan, catatan, gardu, atau KM…"
+              onChange={(event) => changeFilter('query', event.target.value)} />
+          </div>
           <div className="history-filter-grid">
             <div>
               <label className="field-label" htmlFor="history-road">Ruas</label>
@@ -85,19 +87,23 @@ export function HistoryPage({ onOpenVisit, filters, onFiltersChange }: HistoryPa
                 onChange={(value) => changeFilter('location', value)} />
             </div>
           </div>
-          <label className="field-label" htmlFor="history-activity">Nama kegiatan</label>
-          <SearchableSelect id="history-activity" label="Nama kegiatan" value={filters.activity}
-            options={[{ value: '', label: 'Semua kegiatan' }, ...activityNames(visits).map((name) => ({ value: name, label: name }))]}
-            onChange={(value) => changeFilter('activity', value)} />
-          <label className="field-label" htmlFor="history-period">Waktu</label>
-          <select id="history-period" value={filters.period}
-            onChange={(event) => changeFilter('period', event.target.value as VisitFilters['period'])}>
-            <option value="all">Semua waktu</option>
-            <option value="today">Hari ini</option>
-            <option value="week">7 hari terakhir</option>
-            <option value="month">Bulan ini</option>
-            <option value="range">Pilih rentang tanggal</option>
-          </select>
+          <div className="history-filter-field">
+            <label className="field-label" htmlFor="history-activity">Nama kegiatan</label>
+            <SearchableSelect id="history-activity" label="Nama kegiatan" value={filters.activity}
+              options={[{ value: '', label: 'Semua kegiatan' }, ...activityNames(visits).map((name) => ({ value: name, label: name }))]}
+              onChange={(value) => changeFilter('activity', value)} />
+          </div>
+          <div className="history-filter-field">
+            <label className="field-label" htmlFor="history-period">Waktu</label>
+            <select id="history-period" value={filters.period}
+              onChange={(event) => changeFilter('period', event.target.value as VisitFilters['period'])}>
+              <option value="all">Semua waktu</option>
+              <option value="today">Hari ini</option>
+              <option value="week">7 hari terakhir</option>
+              <option value="month">Bulan ini</option>
+              <option value="range">Pilih rentang tanggal</option>
+            </select>
+          </div>
           {filters.period === 'range' && <div className="history-filter-grid date-range">
             <div>
               <label className="field-label" htmlFor="history-start">Dari</label>

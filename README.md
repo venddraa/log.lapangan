@@ -20,6 +20,7 @@ Log Lapangan adalah Progressive Web App untuk mencatat kegiatan lapangan jalan t
 - Sinkronisasi antrean offline ke PostgreSQL dan private photo storage.
 - Pencegahan konflik antarperangkat dan penyimpanan salinan lokal ketika bertabrakan.
 - Manifest, ikon aplikasi, dan offline service worker.
+- Layout desktop mulai lebar 1024 px: sidebar, konten lebar, filter sejajar, form dua kolom, dan galeri foto dua kolom. Layout mobile dipertahankan.
 
 ## Stack
 
