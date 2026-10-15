@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { getSyncStatus, resolveSyncConflict, subscribeSync, syncNow } from '../db/sync'
 
-export function SyncIndicator() {
+export function SyncIndicator({ disabled = false }: { disabled?: boolean }) {
   const status = useSyncExternalStore(subscribeSync, getSyncStatus)
 
   useEffect(() => {
@@ -24,10 +24,10 @@ export function SyncIndicator() {
 
   return (
     <div className={`sync-indicator${status.error ? ' error' : ''}`} role="status">
-      <span>{status.message || 'Menyiapkan sinkronisasi…'}
+      <span>{disabled ? 'Backup/pemulihan berlangsung…' : status.message || 'Menyiapkan sinkronisasi…'}
         {status.pending > 0 && ` · ${status.pending} belum terkirim`}
       </span>
-      <button type="button" onClick={() => { void syncNow() }} disabled={status.busy}>
+      <button type="button" onClick={() => { void syncNow() }} disabled={status.busy || disabled}>
         {status.busy ? 'Memproses…' : 'Sinkronkan'}
       </button>
       {status.conflictId && (
@@ -35,13 +35,13 @@ export function SyncIndicator() {
           {status.conflictOperation === 'save' && (
             <button type="button" onClick={() => {
               void resolveSyncConflict(true)
-            }}>Simpan salinan lokal</button>
+            }} disabled={disabled || status.busy}>Simpan salinan lokal</button>
           )}
           <button type="button" onClick={() => {
             if (window.confirm('Buang perubahan lokal yang bertabrakan dan gunakan versi cloud?')) {
               void resolveSyncConflict(false)
             }
-          }}>Gunakan versi cloud</button>
+          }} disabled={disabled || status.busy}>Gunakan versi cloud</button>
         </div>
       )}
     </div>

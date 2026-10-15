@@ -6,6 +6,7 @@ import { getRecentVisits } from '../db/database'
 import type { VisitSummary } from '../types/visit'
 
 type HomePageProps = {
+  onOpenBackup: () => void
   draftOwner: string
   onResumeDraft: (visitId?: string) => void
   onCreateVisit: () => void
@@ -15,7 +16,7 @@ type HomePageProps = {
 }
 
 export function HomePage({
-  draftOwner, onResumeDraft,
+  draftOwner, onResumeDraft, onOpenBackup,
   onCreateVisit,
   onOpenHistory,
   onOpenVisit,
@@ -123,6 +124,10 @@ export function HomePage({
               ))}
             </div>
           )}
+        </section>
+        <section className="backup-entry">
+          <div><h2>Backup dokumentasi</h2><p>Simpan salinan dokumentasi bersama dan pulihkan saat dibutuhkan.</p></div>
+          <button type="button" onClick={onOpenBackup}>Backup & pemulihan</button>
         </section>
       </main>
     </>

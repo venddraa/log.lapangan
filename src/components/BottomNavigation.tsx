@@ -1,6 +1,6 @@
 import { AppIcon } from './AppIcon'
 
-export type AppView = 'home' | 'new' | 'history' | 'detail' | 'edit'
+export type AppView = 'home' | 'new' | 'history' | 'detail' | 'edit' | 'backup'
 
 type BottomNavigationProps = {
   disabled?: boolean

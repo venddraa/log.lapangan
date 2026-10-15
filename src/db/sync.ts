@@ -33,6 +33,7 @@ export type SyncStatus = {
   conflictOperation?: SyncJob['operation']
 }
 
+let maintenance = false
 let running: Promise<void> | undefined
 let status: SyncStatus = { busy: false, pending: 0, message: '', error: false }
 const listeners = new Set<() => void>()
@@ -264,6 +265,20 @@ export async function resolveSyncConflict(keepLocalCopy: boolean) {
 }
 
 export function syncNow() {
+  if (maintenance) return Promise.resolve()
   if (!running) running = sync().finally(() => { running = undefined })
   return running
+}
+
+
+export async function withCloudMaintenance<T>(operation: () => Promise<T>): Promise<T> {
+  if (maintenance) throw new Error('Masih ada proses backup atau pemulihan yang berjalan.')
+  maintenance = true
+  try {
+    if (running) await running
+    return await operation()
+  } finally {
+    maintenance = false
+    void syncNow().catch(() => {})
+  }
 }

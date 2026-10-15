@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import {
   BottomNavigation,
   type AppView,
@@ -15,6 +15,8 @@ import type { AuthenticatedAppProps } from './auth/AuthGate'
 import { SyncIndicator } from './components/SyncIndicator'
 import { emptyVisitFilters, type VisitFilters } from './utils/visitFilters'
 import './App.css'
+
+const BackupPage = lazy(() => import('./pages/BackupPage'))
 
 function App({ onSignOut, memberCode }: AuthenticatedAppProps) {
   const draftOwner = memberCode ?? 'local'
@@ -45,10 +47,11 @@ function App({ onSignOut, memberCode }: AuthenticatedAppProps) {
   return (
     <div className="app-shell">
       <div className="app-frame">
-        {onSignOut && <SyncIndicator />}
+        {onSignOut && <SyncIndicator disabled={activeView === 'backup' && formBusy} />}
         {activeView === 'home' && (
           <HomePage
             draftOwner={draftOwner}
+            onOpenBackup={() => setActiveView('backup')}
             onResumeDraft={(visitId) => {
               if (visitId) { setSelectedVisitId(visitId); setDetailOrigin('home'); setActiveView('edit') }
               else setActiveView('new')
@@ -90,6 +93,9 @@ function App({ onSignOut, memberCode }: AuthenticatedAppProps) {
           />
         )}
 
+        {activeView === 'backup' && <Suspense fallback={<div className="detail-status">Menyiapkan backup…</div>}>
+          <BackupPage onBack={() => setActiveView('home')} onBusyChange={setFormBusy} />
+        </Suspense>}
         <BottomNavigation activeView={activeView} onNavigate={setActiveView} disabled={formBusy} />
       </div>
     </div>
