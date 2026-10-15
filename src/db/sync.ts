@@ -192,7 +192,9 @@ async function pullVisits() {
   window.dispatchEvent(new Event('field-log-cloud-change'))
 }
 
-export async function clearSyncedCache() {
+export async function clearSyncedCache(owner?: string) {
+  const unfinished = owner ? await db.drafts.where('owner').equals(owner).count() : await db.drafts.count()
+  if (unfinished) throw new Error('Masih ada draft di perangkat ini. Lanjutkan dan simpan, atau buang draft dari beranda sebelum keluar.')
   await syncNow()
   if (status.error || await db.syncJobs.count() || await db.syncCleanup.count()) {
     throw new Error('Sinkronkan catatan yang belum terkirim sebelum keluar.')

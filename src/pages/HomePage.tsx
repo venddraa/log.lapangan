@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
+import { DraftList } from '../components/DraftList'
 import { AppIcon } from '../components/AppIcon'
 import { VisitCard } from '../components/VisitCard'
 import { getRecentVisits } from '../db/database'
 import type { VisitSummary } from '../types/visit'
 
 type HomePageProps = {
+  draftOwner: string
+  onResumeDraft: (visitId?: string) => void
   onCreateVisit: () => void
   onOpenHistory: () => void
   onOpenVisit: (id: string) => void
@@ -12,6 +15,7 @@ type HomePageProps = {
 }
 
 export function HomePage({
+  draftOwner, onResumeDraft,
   onCreateVisit,
   onOpenHistory,
   onOpenVisit,
@@ -86,6 +90,8 @@ export function HomePage({
             <AppIcon name="arrow" size={22} />
           </button>
         </section>
+
+        <DraftList owner={draftOwner} onResume={onResumeDraft} />
 
         <section className="recent-section" aria-labelledby="recent-title">
           <div className="section-heading">

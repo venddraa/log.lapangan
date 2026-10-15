@@ -3,12 +3,13 @@ import { AppIcon } from './AppIcon'
 export type AppView = 'home' | 'new' | 'history' | 'detail' | 'edit'
 
 type BottomNavigationProps = {
+  disabled?: boolean
   activeView: AppView
   onNavigate: (view: AppView) => void
 }
 
 export function BottomNavigation({
-  activeView,
+  activeView, disabled,
   onNavigate,
 }: BottomNavigationProps) {
   return (
@@ -20,6 +21,7 @@ export function BottomNavigation({
       <button
         className={activeView === 'home' ? 'nav-item active' : 'nav-item'}
         type="button"
+        disabled={disabled}
         onClick={() => onNavigate('home')}
         aria-current={activeView === 'home' ? 'page' : undefined}
       >
@@ -30,6 +32,7 @@ export function BottomNavigation({
       <button
         className={activeView === 'new' ? 'nav-create active' : 'nav-create'}
         type="button"
+        disabled={disabled}
         onClick={() => onNavigate('new')}
         aria-label="Kunjungan baru"
         aria-current={activeView === 'new' ? 'page' : undefined}
@@ -41,6 +44,7 @@ export function BottomNavigation({
       <button
         className={activeView === 'history' ? 'nav-item active' : 'nav-item'}
         type="button"
+        disabled={disabled}
         onClick={() => onNavigate('history')}
         aria-current={activeView === 'history' ? 'page' : undefined}
       >

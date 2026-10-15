@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie'
+import type { DraftRecord, DraftCommit } from '../types/draft'
 import { isSupabaseConfigured } from '../auth/supabase'
 import type {
   CreateVisitInput,
@@ -21,6 +22,8 @@ export type SyncRecord = {
 export type SyncCleanup = { path: string; visitId: string }
 
 class FieldLogDatabase extends Dexie {
+  drafts!: Table<DraftRecord, string>
+  draftPhotos!: Table<{ draftId: string; id: string; blob: Blob }, [string, string]>
   visits!: Table<Visit, string>
   photos!: Table<Photo, string>
   syncJobs!: Table<SyncJob, string>
@@ -49,6 +52,7 @@ class FieldLogDatabase extends Dexie {
       photos: 'id, visitId, createdAt',
       syncJobs: 'id', syncRecords: 'id', syncCleanup: 'path, visitId',
     })
+    this.version(5).stores({ drafts: 'id, owner, updatedAt', draftPhotos: '[draftId+id], draftId' })
   }
 }
 
@@ -63,11 +67,21 @@ function notifyChange() {
   window.dispatchEvent(new Event('field-log-change'))
 }
 
-export async function createVisit({ photos, ...input }: CreateVisitInput) {
+async function consumeDraft(draft?: DraftCommit) {
+  if (!draft) return
+  const current = await db.drafts.get(draft.id)
+  if (!current || current.revision !== draft.revision || current.newVisitId !== draft.newVisitId) {
+    throw new Error('Draft sudah berubah atau disimpan di tab lain. Buka ulang form untuk memuat versi terbaru.')
+  }
+  await db.drafts.delete(draft.id)
+  await db.draftPhotos.where('draftId').equals(draft.id).delete()
+}
+
+export async function createVisit({ photos, ...input }: CreateVisitInput, draft?: DraftCommit) {
   const now = new Date().toISOString()
   const visit: Visit = {
     ...input,
-    id: crypto.randomUUID(),
+    id: draft?.newVisitId ?? crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
   }
@@ -79,7 +93,8 @@ export async function createVisit({ photos, ...input }: CreateVisitInput) {
     createdAt: now,
   }))
 
-  await db.transaction('rw', db.visits, db.photos, db.syncJobs, async () => {
+  await db.transaction('rw', db.visits, db.photos, db.syncJobs, db.drafts, db.draftPhotos, async () => {
+    await consumeDraft(draft)
     await db.visits.add(visit)
     if (photoRecords.length > 0) {
       await db.photos.bulkAdd(photoRecords)
@@ -91,7 +106,7 @@ export async function createVisit({ photos, ...input }: CreateVisitInput) {
   return visit
 }
 
-export async function updateVisit(id: string, input: CreateVisitInput, expectedUpdatedAt?: string) {
+export async function updateVisit(id: string, input: CreateVisitInput, expectedUpdatedAt?: string, draft?: DraftCommit) {
   const existingVisit = await db.visits.get(id)
   if (!existingVisit) throw new Error('Kunjungan tidak ditemukan.')
 
@@ -121,11 +136,12 @@ export async function updateVisit(id: string, input: CreateVisitInput, expectedU
       (photo.id && existingPhotosById.get(photo.id)?.createdAt) || now,
   }))
 
-  await db.transaction('rw', db.visits, db.photos, db.syncJobs, async () => {
+  await db.transaction('rw', db.visits, db.photos, db.syncJobs, db.drafts, db.draftPhotos, async () => {
     const currentVisit = await db.visits.get(id)
     if (!currentVisit || (expectedUpdatedAt && currentVisit.updatedAt !== expectedUpdatedAt)) {
       throw new Error('Kunjungan sudah berubah di perangkat lain. Salin isianmu, lalu buka ulang form edit.')
     }
+    await consumeDraft(draft)
     await db.visits.put(updatedVisit)
     if (deletedPhotoIds.length > 0) {
       await db.photos.bulkDelete(deletedPhotoIds)

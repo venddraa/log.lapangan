@@ -16,6 +16,7 @@ Log Lapangan adalah Progressive Web App untuk mencatat kegiatan lapangan jalan t
 - Dropdown ruas dan gerbang yang bisa dicari, dengan pilihan isi manual dan ruas terakhir diingat di perangkat.
 - Filter riwayat berdasarkan ruas, lokasi, nama kegiatan, waktu WIB, dan pencarian kegiatan/catatan/gardu/KM. Pilihan filter bertahan saat kembali dari detail.
 - Edit dan hapus kunjungan beserta foto.
+- Draft otomatis untuk kunjungan baru dan edit, termasuk foto, catatan per foto, dan catatan yang belum dipasangkan.
 - Penyimpanan lokal menggunakan IndexedDB.
 - Sinkronisasi antrean offline ke PostgreSQL dan private photo storage.
 - Pencegahan konflik antarperangkat dan penyimpanan salinan lokal ketika bertabrakan.
@@ -96,6 +97,16 @@ Login pertama membutuhkan internet untuk memverifikasi allowlist. Pengguna yang 
 Data kunjungan dan foto disimpan secara lokal untuk penggunaan offline, kemudian dikirim ke project Supabase setelah login dan verifikasi membership. Metadata disimpan di PostgreSQL, foto di private bucket. RLS membatasi akses ke lima anggota terdaftar. Foto hasil unduhan bertulisan dibuat di perangkat; foto bersih yang disimpan di cloud.
 
 Data lokal tetap dapat hilang jika pengguna menghapus data situs atau sistem mengosongkan storage browser. Fitur export dan import backup direncanakan sebelum aplikasi digunakan untuk dokumentasi penting.
+
+## Draft otomatis
+
+Perubahan form disimpan otomatis di IndexedDB, terpisah dari kunjungan dan antrean sinkronisasi. Status **Draft tersimpan di perangkat ini** berarti perubahan sudah selesai ditulis. Foto masuk draft setelah selesai diproses; tunggu proses dan status simpan selesai sebelum menutup aplikasi.
+
+Draft muncul di beranda dengan tombol **Lanjutkan** dan **Buang**. Ada satu draft kunjungan baru per akun dan draft edit tersendiri untuk setiap kunjungan. Draft dipulihkan pada browser, domain, perangkat, dan akun yang sama; draft belum dikirim ke Supabase atau anggota lain. Jam kunjungan awal tetap dipertahankan saat dilanjutkan.
+
+Saat kunjungan disimpan, draft dan file sementara dibersihkan dalam transaksi yang sama dengan penyimpanan kunjungan. Kegagalan simpan tetap mempertahankan draft. Dua tab tidak bisa menimpa revisi draft yang lebih baru. Jika kunjungan asal berubah atau sudah dihapus, draft edit dapat disimpan sebagai kunjungan baru dengan foto tersendiri.
+
+Pembuangan draft memerlukan konfirmasi. Logout ditahan selama akun masih punya draft agar dokumentasi yang belum selesai tidak tertinggal tanpa disadari. Draft lokal bukan backup dan dapat hilang jika data situs dihapus. Penutupan paksa perangkat saat proses tulis/foto berlangsung tidak menjamin perubahan terakhir sudah tersimpan.
 
 ## Status
 

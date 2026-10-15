@@ -26,10 +26,19 @@ import type {
 import { compressImage, formatFileSize } from '../utils/image'
 import { getAllVisits } from '../db/database'
 import { activityNames, combinedPhotoNote } from '../utils/activityNames'
+import { draftId, loadDraft, discardDraft, notifyDrafts } from '../db/drafts'
+import { useDraftAutosave } from '../hooks/useDraftAutosave'
+import type { DraftCommit, DraftFields, LoadedDraft } from '../types/draft'
+
+const emptyPhotos: Photo[] = []
 
 type NewVisitPageProps = {
+  onBusyChange?: (busy: boolean) => void
   onBack: () => void
-  onSave: (visit: CreateVisitInput) => Promise<void>
+  onSave: (visit: CreateVisitInput, draft: DraftCommit) => Promise<void>
+  onSaveCopy?: (visit: CreateVisitInput, draft: DraftCommit) => Promise<void>
+  draftOwner: string
+  draftVisitId?: string
   mode?: 'create' | 'edit'
   initialVisit?: Visit
   initialPhotos?: Photo[]
@@ -64,53 +73,73 @@ function getLastRoad() {
   } catch { return '' }
 }
 
-export function NewVisitPage({
-  onBack,
-  onSave,
-  mode = 'create',
-  initialVisit,
-  initialPhotos = [],
-}: NewVisitPageProps) {
-  const startedAt = useMemo(
-    () => (initialVisit ? new Date(initialVisit.visitDate) : new Date()),
-    [initialVisit],
-  )
+export function NewVisitPage(props: NewVisitPageProps) {
+  const id = draftId(props.draftOwner, props.initialVisit?.id ?? props.draftVisitId)
+  const [loaded, setLoaded] = useState<{ id: string; draft?: LoadedDraft }>()
+  const [loadError, setLoadError] = useState('')
+  const [reload, setReload] = useState(0)
+  useEffect(() => {
+    let active = true
+    void loadDraft(id).then((draft) => { if (active) setLoaded({ id, draft }) })
+      .catch(() => { if (active) setLoadError('Draft belum bisa dibuka. Periksa ruang penyimpanan lalu coba lagi.') })
+    return () => { active = false }
+  }, [id, reload])
+  if (loadError) return <div className="detail-status error-state"><p>{loadError}</p>
+    <button type="button" onClick={() => { setLoadError(''); setReload((value) => value + 1) }}>Coba lagi</button>
+    <button type="button" onClick={props.onBack}>Kembali</button></div>
+  if (loaded?.id !== id) return <div className="detail-status">Menyiapkan draft…</div>
+  return <VisitForm key={`${id}:${reload}`} {...props} initialDraft={loaded.draft}
+    onDiscarded={() => {
+      if (props.mode === 'edit' && !props.initialVisit) { props.onBack(); return }
+      setLoaded(undefined); setReload((value) => value + 1)
+    }} />
+}
+
+function VisitForm({ onBack, onSave, onSaveCopy, onBusyChange, draftOwner, draftVisitId, mode = 'create', initialVisit,
+  initialPhotos = emptyPhotos, initialDraft, onDiscarded,
+}: NewVisitPageProps & { initialDraft?: LoadedDraft; onDiscarded: () => void }) {
+  const restored = initialDraft?.fields
+  const sourceVisitId = initialVisit?.id ?? draftVisitId
+  const [startedAt] = useState(() => restored?.startedAt
+    ? new Date(restored.startedAt) : initialVisit ? new Date(initialVisit.visitDate) : new Date())
+  const [newVisitId] = useState(() => initialDraft?.newVisitId ?? crypto.randomUUID())
   const visitTime = formatVisitTime(startedAt)
   const [locationType, setLocationType] =
-    useState<LocationType>(initialVisit?.primaryLocation.type ?? 'toll_gate')
+    useState<LocationType>(restored?.locationType ?? initialVisit?.primaryLocation.type ?? 'toll_gate')
   const [tollRoadId, setTollRoadId] = useState(
-    initialVisit?.primaryLocation.tollRoadId ?? (mode === 'create' ? getLastRoad() : ''),
+    restored?.tollRoadId ?? initialVisit?.primaryLocation.tollRoadId ?? (mode === 'create' ? getLastRoad() : ''),
   )
   const [customTollRoad, setCustomTollRoad] = useState(
-    initialVisit?.primaryLocation.tollRoadId === 'other'
+    restored?.customTollRoad ?? (initialVisit?.primaryLocation.tollRoadId === 'other'
       ? (initialVisit.primaryLocation.tollRoadName ?? '')
-      : '',
+      : ''),
   )
   const [locationName, setLocationName] = useState(
-    initialVisit?.primaryLocation.name ?? '',
+    restored?.locationName ?? initialVisit?.primaryLocation.name ?? '',
   )
   const [locationDetail, setLocationDetail] = useState(
-    initialVisit?.primaryLocation.detail ?? '',
+    restored?.locationDetail ?? initialVisit?.primaryLocation.detail ?? '',
   )
   const [gateChoice, setGateChoice] = useState(() => {
+    if (restored) return restored.gateChoice
     const name = initialVisit?.primaryLocation.name ?? ''
     return name && initialVisit?.primaryLocation.type === 'toll_gate'
       ? (tollGates[initialVisit.primaryLocation.tollRoadId ?? '']?.includes(name) ? name : '__other__')
       : ''
   })
   const [direction, setDirection] = useState(
-    initialVisit?.primaryLocation.direction ?? '',
+    restored?.direction ?? initialVisit?.primaryLocation.direction ?? '',
   )
   const [station, setStation] = useState(
-    initialVisit?.primaryLocation.station ?? '',
+    restored?.station ?? initialVisit?.primaryLocation.station ?? '',
   )
   const [activityName, setActivityName] = useState(
-    initialVisit?.activityName ?? '',
+    restored?.activityName ?? initialVisit?.activityName ?? '',
   )
   const [activityCategory, setActivityCategory] =
-    useState<ActivityCategory | ''>(initialVisit?.activityCategory ?? '')
+    useState<ActivityCategory | ''>(restored?.activityCategory ?? initialVisit?.activityCategory ?? '')
   const notes = initialVisit?.notes ?? ''
-  const [pendingNote, setPendingNote] = useState('')
+  const [pendingNote, setPendingNote] = useState(restored?.pendingNote ?? '')
   const [previousActivities, setPreviousActivities] = useState<string[]>([])
   const [isChecked, setIsChecked] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -119,7 +148,8 @@ export function NewVisitPage({
   const [isProcessingPhotos, setIsProcessingPhotos] = useState(false)
   const [photoError, setPhotoError] = useState('')
   const previewUrls = useRef(new Set<string>())
-  const hasLoadedInitialPhotos = useRef(false)
+  const [photosReady, setPhotosReady] = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
 
   const locationConfig = locationTypes.find(
     (location) => location.id === locationType,
@@ -144,14 +174,12 @@ export function NewVisitPage({
     const urls = previewUrls.current
     return () => {
       urls.forEach((url) => URL.revokeObjectURL(url))
+      urls.clear()
     }
   }, [])
 
   useEffect(() => {
-    if (hasLoadedInitialPhotos.current || initialPhotos.length === 0) return
-    hasLoadedInitialPhotos.current = true
-
-    const drafts = initialPhotos.map((photo) => {
+    const drafts = (restored?.photos ?? initialPhotos).map((photo) => {
       const previewUrl = URL.createObjectURL(photo.blob)
       previewUrls.current.add(previewUrl)
       return {
@@ -162,7 +190,40 @@ export function NewVisitPage({
       }
     })
     setPhotos(drafts)
-  }, [initialPhotos])
+    setPhotosReady(true)
+  }, [initialPhotos, restored])
+
+  const fields = useMemo<DraftFields>(() => ({
+    startedAt: startedAt.toISOString(), locationType, tollRoadId, customTollRoad,
+    locationName, locationDetail, gateChoice, direction, station, activityName, activityCategory,
+    pendingNote, photos: photos.map(({ id, blob, note }) => ({ id, blob, note })),
+  }), [startedAt, locationType, tollRoadId, customTollRoad, locationName, locationDetail,
+    gateChoice, direction, station, activityName, activityCategory, pendingNote, photos])
+  const { session, status: draftStatus } = useDraftAutosave({
+    id: draftId(draftOwner, sourceVisitId), owner: draftOwner, visitId: sourceVisitId,
+    baseUpdatedAt: initialDraft?.baseUpdatedAt ?? initialVisit?.updatedAt,
+    newVisitId, revision: initialDraft?.revision ?? 0,
+  }, fields, photosReady)
+  const staleDraft = Boolean(mode === 'edit' && initialDraft && (!initialVisit || initialDraft.baseUpdatedAt !== initialVisit.updatedAt))
+
+  useEffect(() => {
+    onBusyChange?.(isProcessingPhotos || isSaving)
+    return () => { onBusyChange?.(false) }
+  }, [onBusyChange, isProcessingPhotos, isSaving])
+  useEffect(() => {
+    if (!isProcessingPhotos && draftStatus.kind !== 'saving' && draftStatus.kind !== 'error') return
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [isProcessingPhotos, draftStatus.kind])
+
+  async function handleDiscardDraft() {
+    try {
+      const revision = await session.closeForDiscard()
+      await discardDraft(draftId(draftOwner, sourceVisitId), revision, newVisitId)
+      onDiscarded()
+    } catch (error) { setSaveError(error instanceof Error ? error.message : 'Draft belum bisa dibuang.') }
+  }
 
   async function handlePhotoSelection(event: ChangeEvent<HTMLInputElement>) {
     const selectedFiles = Array.from(event.target.files ?? [])
@@ -242,6 +303,9 @@ export function NewVisitPage({
       setSaveError('Catatan belum dipasangkan ke foto. Ambil/pilih satu foto, atau kosongkan catatan sebelum menyimpan.')
       return
     }
+    const saveCopy = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'copy'
+    if (staleDraft && !saveCopy) { setSaveError('Kunjungan sudah berubah. Simpan sebagai kunjungan baru atau buang draft untuk memuat data terbaru.'); return }
+    if (isSaving || isProcessingPhotos) return
     setIsSaving(true)
 
     const tollRoad = tollRoads.find((road) => road.id === tollRoadId)
@@ -249,7 +313,9 @@ export function NewVisitPage({
       tollRoadId === 'other' ? customTollRoad.trim() : tollRoad?.name
 
     try {
-      await onSave({
+      const commit = await session.flush()
+      const save = saveCopy && onSaveCopy ? onSaveCopy : onSave
+      await save({
         activityName: activityName.trim(),
         activityCategory: activityCategory || undefined,
         primaryLocation: {
@@ -270,7 +336,9 @@ export function NewVisitPage({
           note: photo.note.trim(),
           additionalNote: '',
         })),
-      })
+      }, commit)
+      session.stop()
+      notifyDrafts()
       if (locationConfig.needsTollRoad && tollRoadId !== 'other') {
         try { localStorage.setItem('field-log-last-road', tollRoadId) } catch { /* Saving a visit must not depend on preferences. */ }
       }
@@ -282,10 +350,12 @@ export function NewVisitPage({
     }
   }
 
+  if (!photosReady) return <div className="detail-status">Memuat foto draft…</div>
+
   return (
     <>
       <header className="form-header">
-        <button className="back-button" type="button" onClick={onBack}>
+        <button className="back-button" type="button" disabled={isSaving || isProcessingPhotos} onClick={onBack}>
           <AppIcon name="arrow" size={22} />
           <span>Kembali</span>
         </button>
@@ -306,7 +376,20 @@ export function NewVisitPage({
       </header>
 
       <main className="page-content form-page">
-        <form className="visit-form" onSubmit={handleSubmit}>
+        <form className="visit-form" onSubmit={handleSubmit} inert={isSaving}>
+          <section className={`draft-notice ${draftStatus.kind}`} aria-label="Draft otomatis">
+            <div role={draftStatus.kind === 'error' ? 'alert' : 'status'}>{draftStatus.message}</div>
+            {staleDraft && <p>Kunjungan ini sudah berubah atau tidak tersedia. Draft tetap ada; simpan sebagai kunjungan baru agar data terbaru tidak tertimpa.</p>}
+            <div className="draft-actions">
+              {draftStatus.kind === 'error' && <button type="button" onClick={() => void session.retry()}>Coba simpan draft</button>}
+              <button type="button" disabled={isSaving || isProcessingPhotos} onClick={() => setConfirmDiscard(true)}>Buang draft</button>
+            </div>
+            {confirmDiscard && <div className="draft-confirm" role="alert">
+              <p>Buang isian dan foto draft ini? Kunjungan yang sudah disimpan tetap ada.</p>
+              <button type="button" onClick={() => void handleDiscardDraft()}>Ya, buang draft</button>
+              <button type="button" onClick={() => setConfirmDiscard(false)}>Batal</button>
+            </div>}
+          </section>
           <section className="form-section" aria-labelledby="location-heading">
             <div className="form-section-heading">
               <span>1</span>
@@ -710,7 +793,9 @@ export function NewVisitPage({
             </div>
           )}
 
-          <button className="save-button" type="submit" disabled={isSaving || isProcessingPhotos}>
+          {onSaveCopy && (staleDraft || saveError.includes('sudah berubah')) &&
+            <button className="save-button" type="submit" value="copy" disabled={isSaving || isProcessingPhotos}>Simpan sebagai kunjungan baru</button>}
+          <button className="save-button" type="submit" disabled={isSaving || isProcessingPhotos || staleDraft}>
             {isSaving
               ? 'Menyimpan…'
               : mode === 'edit'

@@ -108,7 +108,7 @@ export function AuthGate({ children }: AuthGateProps) {
 
   async function handleSignOut() {
     if (!supabase) return
-    await clearSyncedCache()
+    await clearSyncedCache(session?.user.email?.split('@')[0])
     const { error } = await supabase.auth.signOut()
     if (error) throw error
     localStorage.removeItem('field-log-verified-member')
