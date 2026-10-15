@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { VisitReportExport } from '../components/VisitReportExport'
 import { PhotoZipExport } from '../components/PhotoZipExport'
 import { AppIcon } from '../components/AppIcon'
 import { VisitCard } from '../components/VisitCard'
@@ -33,6 +34,14 @@ export function HistoryPage({ onOpenVisit, filters, onFiltersChange }: HistoryPa
   const exportPhotoCount = filteredVisits.reduce((count, visit) => count + visit.photoCount, 0)
   const exportKey = filteredVisits.map((visit) => `${visit.id}:${visit.updatedAt}:${visit.photoCount}`).join('|')
   const isFiltered = Boolean(filters.road || filters.location || filters.activity || filters.period !== 'all' || filters.query)
+  const reportSelection = [
+    filters.road && `Ruas: ${roadOptions.get(filters.road) ?? filters.road}`,
+    filters.location && `Lokasi: ${filters.location}`,
+    filters.activity && `Kegiatan: ${filters.activity}`,
+    filters.period === 'range' ? `Tanggal: ${filters.start || 'awal'} s.d. ${filters.end || 'terakhir'}`
+      : ({ all: '', today: 'Hari ini', week: '7 hari terakhir', month: 'Bulan ini' }[filters.period]),
+    filters.query.trim() && `Pencarian: ${filters.query.trim()}`,
+  ].filter(Boolean).join(' | ') || 'Semua kunjungan'
   const changeFilter = <K extends keyof VisitFilters>(key: K, value: VisitFilters[K]) => {
     onFiltersChange({ ...filters, [key]: value, ...(key === 'road' ? { location: '' } : {}) })
   }
@@ -145,8 +154,11 @@ export function HistoryPage({ onOpenVisit, filters, onFiltersChange }: HistoryPa
           </div>
         )}
         {!isLoading && !loadError && filteredVisits.length > 0 && (
-          <PhotoZipExport key={exportKey} visits={filteredVisits} photoCount={exportPhotoCount}
-            title={isFiltered ? 'Foto dari hasil filter' : 'Semua foto kunjungan'} />
+          <div className="export-tools" key={`${exportKey}:${reportSelection}`}>
+            <VisitReportExport visits={filteredVisits} photoCount={exportPhotoCount} selectionLabel={reportSelection} />
+            <PhotoZipExport visits={filteredVisits} photoCount={exportPhotoCount}
+              title={isFiltered ? 'Foto dari hasil filter' : 'Semua foto kunjungan'} />
+          </div>
         )}
         {!isLoading && filteredVisits.length > 0 && (
           <div className="history-list">

@@ -1,3 +1,4 @@
+import { VisitReportExport } from '../components/VisitReportExport'
 import { PhotoZipExport } from '../components/PhotoZipExport'
 import { combinedPhotoNote } from '../utils/activityNames'
 import { useEffect, useState } from 'react'
@@ -228,6 +229,8 @@ export function VisitDetailPage({
           </p>
         </section>}
 
+        <VisitReportExport key={`report:${visit.id}:${visit.updatedAt}`} visits={[visit]} photoCount={photos.length}
+          selectionLabel="Satu kunjungan" disabled={Boolean(processingAction) || isDeleting} />
         <section className="detail-section photo-detail-section" aria-labelledby="detail-photos">
           <div className="detail-section-title">
             <h2 id="detail-photos">Foto</h2>

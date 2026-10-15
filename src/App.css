@@ -2059,3 +2059,12 @@ button {
 .zip-export .zip-message { margin-top: 12px; }
 .zip-export .zip-message.error { color: #922f24; }
 .history-page > .zip-export { margin-bottom: 20px; }
+
+.export-tools { display: grid; gap: 14px; margin-bottom: 20px; }
+.export-tools > .zip-export { margin: 0; }
+.report-photo-option { display: flex; align-items: center; gap: 9px; min-height: 42px; margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.5; cursor: pointer; }
+.report-photo-option input { width: 17px; height: 17px; flex-shrink: 0; accent-color: var(--blue-800); }
+.detail-page > .report-export { margin: 0; }
+@media (min-width: 1280px) {
+  .export-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
