@@ -1,3 +1,4 @@
+import { PhotoZipExport } from '../components/PhotoZipExport'
 import { combinedPhotoNote } from '../utils/activityNames'
 import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon'
@@ -233,6 +234,8 @@ export function VisitDetailPage({
             <span>{photos.length}</span>
           </div>
 
+          {photos.length > 0 && <PhotoZipExport key={`${visit.id}:${visit.updatedAt}`} visits={[visit]}
+            photoCount={photos.length} title="Semua foto kunjungan ini" disabled={Boolean(processingAction) || isDeleting} />}
           {photos.length === 0 ? (
             <p className="detail-notes empty">Tidak ada foto pada kunjungan ini.</p>
           ) : (

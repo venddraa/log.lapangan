@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PhotoZipExport } from '../components/PhotoZipExport'
 import { AppIcon } from '../components/AppIcon'
 import { VisitCard } from '../components/VisitCard'
 import { getAllVisits } from '../db/database'
@@ -29,6 +30,8 @@ export function HistoryPage({ onOpenVisit, filters, onFiltersChange }: HistoryPa
     .map((visit) => visit.primaryLocation.name).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'id', { numeric: true }))
   const filteredVisits = filterVisits(visits, filters)
+  const exportPhotoCount = filteredVisits.reduce((count, visit) => count + visit.photoCount, 0)
+  const exportKey = filteredVisits.map((visit) => `${visit.id}:${visit.updatedAt}:${visit.photoCount}`).join('|')
   const isFiltered = Boolean(filters.road || filters.location || filters.activity || filters.period !== 'all' || filters.query)
   const changeFilter = <K extends keyof VisitFilters>(key: K, value: VisitFilters[K]) => {
     onFiltersChange({ ...filters, [key]: value, ...(key === 'road' ? { location: '' } : {}) })
@@ -140,6 +143,10 @@ export function HistoryPage({ onOpenVisit, filters, onFiltersChange }: HistoryPa
             <p>Coba ruas, lokasi, waktu, atau kata pencarian lain.</p>
             <button className="text-button" type="button" onClick={() => onFiltersChange({ ...emptyVisitFilters })}>Reset filter</button>
           </div>
+        )}
+        {!isLoading && !loadError && filteredVisits.length > 0 && (
+          <PhotoZipExport key={exportKey} visits={filteredVisits} photoCount={exportPhotoCount}
+            title={isFiltered ? 'Foto dari hasil filter' : 'Semua foto kunjungan'} />
         )}
         {!isLoading && filteredVisits.length > 0 && (
           <div className="history-list">

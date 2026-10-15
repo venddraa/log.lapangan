@@ -222,7 +222,7 @@ export function createPhotoFilename(visit: Visit, index: number) {
     .join('_') + '.jpg'
 }
 
-export function downloadPhoto(blob: Blob, filename: string) {
+export function downloadPhoto(blob: Blob, filename: string, revokeAfterMs = 1000) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
@@ -230,7 +230,7 @@ export function downloadPhoto(blob: Blob, filename: string) {
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  window.setTimeout(() => URL.revokeObjectURL(url), revokeAfterMs)
 }
 
 export async function compressImage(file: File) {
