@@ -1,16 +1,12 @@
 import { VisitReportExport } from '../components/VisitReportExport'
 import { PhotoZipExport } from '../components/PhotoZipExport'
+import { PhotoSaveActions } from '../components/PhotoSaveActions'
 import { combinedPhotoNote } from '../utils/activityNames'
 import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon'
 import { getVisit, getVisitPhotos } from '../db/database'
 import type { Photo, Visit } from '../types/visit'
-import {
-  createPhotoFilename,
-  createStampedPhoto,
-  downloadPhoto,
-  getPhotoStampLines,
-} from '../utils/image'
+import { getPhotoStampLines } from '../utils/image'
 
 type VisitDetailPageProps = {
   visitId: string
@@ -36,78 +32,6 @@ export function VisitDetailPage({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const [processingAction, setProcessingAction] = useState('')
-  const [photoActionStatus, setPhotoActionStatus] = useState<{
-    photoId: string
-    message: string
-    isError?: boolean
-  }>()
-
-  async function prepareStampedPhoto(photo: PhotoWithPreview, index: number) {
-    if (!visit) throw new Error('Kunjungan tidak ditemukan.')
-    const blob = await createStampedPhoto(photo.blob, visit, photo)
-    return {
-      blob,
-      filename: createPhotoFilename(visit, index),
-    }
-  }
-
-  async function handleDownloadPhoto(photo: PhotoWithPreview, index: number) {
-    setProcessingAction(`${photo.id}:download`)
-    setPhotoActionStatus(undefined)
-    try {
-      const { blob, filename } = await prepareStampedPhoto(photo, index)
-      downloadPhoto(blob, filename)
-      setPhotoActionStatus({
-        photoId: photo.id,
-        message: 'Foto bertulisan berhasil disiapkan.',
-      })
-    } catch {
-      setPhotoActionStatus({
-        photoId: photo.id,
-        message: 'Foto belum berhasil diunduh. Coba sekali lagi.',
-        isError: true,
-      })
-    } finally {
-      setProcessingAction('')
-    }
-  }
-
-  async function handleSharePhoto(photo: PhotoWithPreview, index: number) {
-    setProcessingAction(`${photo.id}:share`)
-    setPhotoActionStatus(undefined)
-    try {
-      const { blob, filename } = await prepareStampedPhoto(photo, index)
-      const file = new File([blob], filename, { type: 'image/jpeg' })
-
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: visit?.activityName || 'Dokumentasi Log Lapangan',
-        })
-        setPhotoActionStatus({
-          photoId: photo.id,
-          message: 'Foto siap dibagikan atau disimpan.',
-        })
-      } else {
-        downloadPhoto(blob, filename)
-        setPhotoActionStatus({
-          photoId: photo.id,
-          message: 'Perangkat ini memakai unduhan sebagai pengganti bagikan.',
-        })
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return
-      setPhotoActionStatus({
-        photoId: photo.id,
-        message: 'Foto belum berhasil dibagikan. Coba sekali lagi.',
-        isError: true,
-      })
-    } finally {
-      setProcessingAction('')
-    }
-  }
-
   async function handleDelete() {
     setIsDeleting(true)
     setDeleteError('')
@@ -230,7 +154,7 @@ export function VisitDetailPage({
         </section>}
 
         <VisitReportExport key={`report:${visit.id}:${visit.updatedAt}`} visits={[visit]} photoCount={photos.length}
-          selectionLabel="Satu kunjungan" disabled={Boolean(processingAction) || isDeleting} />
+          selectionLabel="Satu kunjungan" disabled={isDeleting} />
         <section className="detail-section photo-detail-section" aria-labelledby="detail-photos">
           <div className="detail-section-title">
             <h2 id="detail-photos">Foto</h2>
@@ -238,7 +162,7 @@ export function VisitDetailPage({
           </div>
 
           {photos.length > 0 && <PhotoZipExport key={`${visit.id}:${visit.updatedAt}`} visits={[visit]}
-            photoCount={photos.length} title="Semua foto kunjungan ini" disabled={Boolean(processingAction) || isDeleting} />}
+            photoCount={photos.length} title="Semua foto kunjungan ini" disabled={isDeleting} />}
           {photos.length === 0 ? (
             <p className="detail-notes empty">Tidak ada foto pada kunjungan ini.</p>
           ) : (
@@ -267,38 +191,8 @@ export function VisitDetailPage({
                     {!photo.note && !photo.additionalNote && (
                       <p className="photo-note-empty">Tidak ada catatan.</p>
                     )}
-                    <div className="photo-export-actions">
-                      <button
-                        type="button"
-                        onClick={() => handleSharePhoto(photo, index)}
-                        disabled={Boolean(processingAction)}
-                      >
-                        {processingAction === `${photo.id}:share`
-                          ? 'Menyiapkan…'
-                          : 'Bagikan / Simpan'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadPhoto(photo, index)}
-                        disabled={Boolean(processingAction)}
-                      >
-                        {processingAction === `${photo.id}:download`
-                          ? 'Menyiapkan…'
-                          : 'Unduh JPG'}
-                      </button>
-                    </div>
-                    {photoActionStatus?.photoId === photo.id && (
-                      <p
-                        className={
-                          photoActionStatus.isError
-                            ? 'photo-action-status error'
-                            : 'photo-action-status'
-                        }
-                        role="status"
-                      >
-                        {photoActionStatus.message}
-                      </p>
-                    )}
+                    <PhotoSaveActions blob={photo.blob} visit={visit} note={photo.note}
+                      additionalNote={photo.additionalNote} index={index} disabled={isDeleting} />
                   </figcaption>
                 </figure>
               ))}

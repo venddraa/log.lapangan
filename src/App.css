@@ -1517,6 +1517,14 @@ button {
   opacity: 0.6;
 }
 
+.photo-save { margin-top: 14px; }
+.photo-save .photo-export-actions button { min-height: 44px; }
+.photo-save .photo-export-actions button:only-child { grid-column: 1 / -1; color: var(--blue-950); background: var(--yellow-400); }
+.detail-photo figcaption > .photo-save { padding-top: 0; border-top: 0; }
+.photo-save .photo-save-help { margin: 9px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.photo-save .photo-action-status { margin: 9px 0 0; color: var(--blue-800); font-size: 12px; line-height: 1.6; }
+.photo-save .photo-action-status.error { color: #922f24; }
+
 .detail-photo figcaption .photo-action-status {
   margin-top: 9px;
   color: #356649;

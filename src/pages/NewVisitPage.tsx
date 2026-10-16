@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from 'react'
 import { AppIcon } from '../components/AppIcon'
+import { PhotoSaveActions } from '../components/PhotoSaveActions'
 import { SearchableSelect } from '../components/SearchableSelect'
 import {
   activityCategories,
@@ -154,6 +155,28 @@ function VisitForm({ onBack, onSave, onSaveCopy, onBusyChange, draftOwner, draft
   const locationConfig = locationTypes.find(
     (location) => location.id === locationType,
   )!
+
+  const photoVisit = useMemo<Visit>(() => ({
+    id: sourceVisitId ?? newVisitId,
+    activityName: activityName.trim(), activityCategory: activityCategory || undefined,
+    primaryLocation: {
+      type: locationType, typeLabel: locationConfig.label,
+      tollRoadId: locationConfig.needsTollRoad ? tollRoadId : undefined,
+      tollRoadName: locationConfig.needsTollRoad
+        ? tollRoadId === 'other' ? customTollRoad.trim() : tollRoads.find((road) => road.id === tollRoadId)?.name
+        : undefined,
+      name: locationName.trim(), detail: locationDetail.trim() || undefined,
+      direction: direction || undefined, station: station.trim() || undefined,
+    },
+    notes: notes.trim(), visitDate: startedAt.toISOString(),
+    createdAt: initialVisit?.createdAt ?? startedAt.toISOString(),
+    updatedAt: initialVisit?.updatedAt ?? startedAt.toISOString(),
+  }), [sourceVisitId, newVisitId, activityName, activityCategory, locationType, locationConfig,
+    tollRoadId, customTollRoad, locationName, locationDetail, direction, station, notes, startedAt, initialVisit])
+  const photoFieldsIncomplete = !photoVisit.activityName
+    || (locationConfig.needsTollRoad && !photoVisit.primaryLocation.tollRoadName)
+    || (locationType !== 'main_road' && !photoVisit.primaryLocation.name)
+    || (['main_road', 'gantry'].includes(locationType) && !direction)
 
   useEffect(() => {
     let mounted = true
@@ -308,28 +331,15 @@ function VisitForm({ onBack, onSave, onSaveCopy, onBusyChange, draftOwner, draft
     if (isSaving || isProcessingPhotos) return
     setIsSaving(true)
 
-    const tollRoad = tollRoads.find((road) => road.id === tollRoadId)
-    const tollRoadName =
-      tollRoadId === 'other' ? customTollRoad.trim() : tollRoad?.name
-
     try {
       const commit = await session.flush()
       const save = saveCopy && onSaveCopy ? onSaveCopy : onSave
       await save({
-        activityName: activityName.trim(),
-        activityCategory: activityCategory || undefined,
-        primaryLocation: {
-          type: locationType,
-          typeLabel: locationConfig.label,
-          tollRoadId: locationConfig.needsTollRoad ? tollRoadId : undefined,
-          tollRoadName: locationConfig.needsTollRoad ? tollRoadName : undefined,
-          name: locationName.trim(),
-          detail: locationDetail.trim() || undefined,
-          direction: direction || undefined,
-          station: station.trim() || undefined,
-        },
-        notes: notes.trim(),
-        visitDate: startedAt.toISOString(),
+        activityName: photoVisit.activityName,
+        activityCategory: photoVisit.activityCategory,
+        primaryLocation: photoVisit.primaryLocation,
+        notes: photoVisit.notes,
+        visitDate: photoVisit.visitDate,
         photos: photos.map((photo) => ({
           id: photo.id,
           blob: photo.blob,
@@ -772,6 +782,8 @@ function VisitForm({ onBack, onSave, onSaveCopy, onBusyChange, draftOwner, draft
                         rows={2}
                         placeholder="Keterangan utama foto"
                       />
+                      <PhotoSaveActions blob={photo.blob} visit={photoVisit} note={photo.note} index={index}
+                        incomplete={photoFieldsIncomplete} disabled={isSaving || isProcessingPhotos} />
                     </div>
                   </article>
                 ))}
